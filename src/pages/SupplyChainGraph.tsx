@@ -120,19 +120,39 @@ export default function SupplyChainGraph() {
                   </text>
                 ))}
 
-                {/* Edges */}
-                {edges.map((edge, i) => (
-                  <line
-                    key={i}
-                    x1={edge.from.x}
-                    y1={edge.from.y}
-                    x2={edge.to.x}
-                    y2={edge.to.y}
-                    stroke={edge.highlighted ? "hsl(217, 91%, 60%)" : "hsl(225, 15%, 20%)"}
-                    strokeWidth={edge.highlighted ? 2 : 0.8}
-                    strokeOpacity={edge.highlighted ? 0.9 : 0.4}
-                  />
-                ))}
+                {/* Arrow marker definitions */}
+                <defs>
+                  <marker id="arrow" viewBox="0 0 10 6" refX="10" refY="3" markerWidth="8" markerHeight="6" orient="auto-start-reverse">
+                    <path d="M 0 0 L 10 3 L 0 6 z" fill="hsl(225, 15%, 25%)" />
+                  </marker>
+                  <marker id="arrow-highlighted" viewBox="0 0 10 6" refX="10" refY="3" markerWidth="8" markerHeight="6" orient="auto-start-reverse">
+                    <path d="M 0 0 L 10 3 L 0 6 z" fill="hsl(217, 91%, 60%)" />
+                  </marker>
+                </defs>
+
+                {/* Edges (supplier → customer) */}
+                {edges.map((edge, i) => {
+                  // Shorten line so arrow doesn't overlap node
+                  const dx = edge.to.x - edge.from.x;
+                  const dy = edge.to.y - edge.from.y;
+                  const len = Math.sqrt(dx * dx + dy * dy);
+                  const nodeRadius = 14;
+                  const x2 = edge.to.x - (dx / len) * nodeRadius;
+                  const y2 = edge.to.y - (dy / len) * nodeRadius;
+                  return (
+                    <line
+                      key={i}
+                      x1={edge.from.x}
+                      y1={edge.from.y}
+                      x2={x2}
+                      y2={y2}
+                      stroke={edge.highlighted ? "hsl(217, 91%, 60%)" : "hsl(225, 15%, 25%)"}
+                      strokeWidth={edge.highlighted ? 2 : 1}
+                      strokeOpacity={edge.highlighted ? 0.9 : 0.5}
+                      markerEnd={edge.highlighted ? "url(#arrow-highlighted)" : "url(#arrow)"}
+                    />
+                  );
+                })}
 
                 {/* Nodes */}
                 {positions.map((node) => {
