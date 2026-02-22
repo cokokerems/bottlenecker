@@ -2,8 +2,9 @@ import { useParams, Link } from "react-router-dom";
 import { getCompanyById, companies, categoryLabels, categoryColors } from "@/data/companies";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowUpRight, ArrowDownRight, ExternalLink } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, ArrowDownRight, ExternalLink, Bot } from "lucide-react";
 import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
+import { Separator } from "@/components/ui/separator";
 
 export default function CompanyDetail() {
   const { id } = useParams<{ id: string }>();
@@ -139,6 +140,55 @@ export default function CompanyDetail() {
           </CardContent>
         </Card>
       </div>
+
+      {/* TEV Breakdown */}
+      {(() => {
+        const tev = company.marketCap + company.totalDebt + company.preferredStock + company.minorityInterest - company.cashAndEquivalents;
+        const rows = [
+          { label: "Market Capitalization", value: company.marketCap, op: "" },
+          { label: "Total Debt", value: company.totalDebt, op: "+" },
+          { label: "Preferred Stock", value: company.preferredStock, op: "+" },
+          { label: "Minority Interest", value: company.minorityInterest, op: "+" },
+          { label: "Cash & Equivalents", value: company.cashAndEquivalents, op: "−" },
+        ];
+        return (
+          <Card className="border-border/50">
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <Bot className="h-4 w-4 text-primary" />
+                <CardTitle className="text-base">Total Enterprise Value (TEV)</CardTitle>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-mono">AI Agent</span>
+              </div>
+              <p className="text-xs text-muted-foreground">Estimated by valuation agent using latest balance sheet data</p>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-1.5 font-mono text-sm">
+                {rows.map((r) => (
+                  <div key={r.label} className="flex items-center justify-between">
+                    <span className="text-muted-foreground flex items-center gap-2">
+                      {r.op && <span className="w-3 text-center text-xs font-bold">{r.op}</span>}
+                      {!r.op && <span className="w-3" />}
+                      {r.label}
+                    </span>
+                    <span>${r.value.toFixed(1)}B</span>
+                  </div>
+                ))}
+                <Separator className="my-2" />
+                <div className="flex items-center justify-between font-bold text-base">
+                  <span className="flex items-center gap-2">
+                    <span className="w-3 text-center text-xs">=</span>
+                    Total Enterprise Value
+                  </span>
+                  <span className="text-primary">${tev.toFixed(1)}B</span>
+                </div>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-3">
+                TEV = Market Cap + Total Debt + Preferred Stock + Minority Interest − Cash & Equivalents
+              </p>
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {/* Risk Score */}
       <Card className="border-border/50">

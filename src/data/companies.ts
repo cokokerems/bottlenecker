@@ -18,6 +18,11 @@ export interface Company {
   customers: string[]; // company ids
   riskScore: number; // 0-100
   dependencyCount: number; // how many companies depend on this one
+  // TEV components (billions)
+  totalDebt: number;
+  preferredStock: number;
+  minorityInterest: number;
+  cashAndEquivalents: number;
 }
 
 export const categoryLabels: Record<CompanyCategory, string> = {
@@ -56,6 +61,7 @@ export const companies: Company[] = [
     suppliers: ["tsmc", "asml", "amat", "lrcx"],
     customers: ["amzn", "googl", "msft", "orcl", "smci"],
     riskScore: 15, dependencyCount: 5,
+    totalDebt: 11.2, preferredStock: 0, minorityInterest: 0, cashAndEquivalents: 31.4,
   },
   {
     id: "amd", name: "AMD", ticker: "AMD", category: "chip-makers",
@@ -66,6 +72,7 @@ export const companies: Company[] = [
     suppliers: ["tsmc", "asml", "amat"],
     customers: ["amzn", "googl", "msft"],
     riskScore: 25, dependencyCount: 3,
+    totalDebt: 2.3, preferredStock: 0, minorityInterest: 0, cashAndEquivalents: 5.8,
   },
   {
     id: "intc", name: "Intel", ticker: "INTC", category: "chip-makers",
@@ -76,6 +83,7 @@ export const companies: Company[] = [
     suppliers: ["asml", "amat", "lrcx"],
     customers: ["msft", "amzn", "googl"],
     riskScore: 65, dependencyCount: 3,
+    totalDebt: 48.2, preferredStock: 0, minorityInterest: 0, cashAndEquivalents: 24.1,
   },
   {
     id: "avgo", name: "Broadcom", ticker: "AVGO", category: "chip-makers",
@@ -86,6 +94,7 @@ export const companies: Company[] = [
     suppliers: ["tsmc", "asml"],
     customers: ["amzn", "googl", "msft", "orcl"],
     riskScore: 20, dependencyCount: 4,
+    totalDebt: 74.5, preferredStock: 0, minorityInterest: 0.8, cashAndEquivalents: 9.8,
   },
   {
     id: "qcom", name: "Qualcomm", ticker: "QCOM", category: "chip-makers",
@@ -96,6 +105,7 @@ export const companies: Company[] = [
     suppliers: ["tsmc", "asml"],
     customers: [],
     riskScore: 30, dependencyCount: 0,
+    totalDebt: 16.4, preferredStock: 0, minorityInterest: 0, cashAndEquivalents: 13.3,
   },
   // Equipment & Materials
   {
@@ -107,6 +117,7 @@ export const companies: Company[] = [
     suppliers: [],
     customers: ["tsmc", "intc", "nvda", "amd", "avgo", "qcom"],
     riskScore: 10, dependencyCount: 6,
+    totalDebt: 5.1, preferredStock: 0, minorityInterest: 0, cashAndEquivalents: 4.9,
   },
   {
     id: "tsmc", name: "TSMC", ticker: "TSM", category: "equipment-materials",
@@ -117,6 +128,7 @@ export const companies: Company[] = [
     suppliers: ["asml", "amat", "lrcx"],
     customers: ["nvda", "amd", "avgo", "qcom"],
     riskScore: 8, dependencyCount: 4,
+    totalDebt: 28.3, preferredStock: 0, minorityInterest: 0, cashAndEquivalents: 52.7,
   },
   {
     id: "amat", name: "Applied Materials", ticker: "AMAT", category: "equipment-materials",
@@ -127,6 +139,7 @@ export const companies: Company[] = [
     suppliers: [],
     customers: ["tsmc", "intc", "nvda", "amd"],
     riskScore: 15, dependencyCount: 4,
+    totalDebt: 5.5, preferredStock: 0, minorityInterest: 0, cashAndEquivalents: 7.5,
   },
   {
     id: "lrcx", name: "Lam Research", ticker: "LRCX", category: "equipment-materials",
@@ -137,6 +150,7 @@ export const companies: Company[] = [
     suppliers: [],
     customers: ["tsmc", "intc", "nvda"],
     riskScore: 18, dependencyCount: 3,
+    totalDebt: 5.0, preferredStock: 0, minorityInterest: 0, cashAndEquivalents: 5.6,
   },
   // Cloud / Data Centers
   {
@@ -148,6 +162,7 @@ export const companies: Company[] = [
     suppliers: ["nvda", "amd", "intc", "avgo", "anet", "vrt", "crst", "smci"],
     customers: [],
     riskScore: 12, dependencyCount: 0,
+    totalDebt: 67.2, preferredStock: 0, minorityInterest: 0, cashAndEquivalents: 73.4,
   },
   {
     id: "googl", name: "Alphabet (Google)", ticker: "GOOGL", category: "cloud-datacenters",
@@ -158,6 +173,7 @@ export const companies: Company[] = [
     suppliers: ["nvda", "amd", "intc", "avgo", "anet", "vrt"],
     customers: [],
     riskScore: 10, dependencyCount: 0,
+    totalDebt: 28.5, preferredStock: 0, minorityInterest: 0, cashAndEquivalents: 110.9,
   },
   {
     id: "msft", name: "Microsoft", ticker: "MSFT", category: "cloud-datacenters",
@@ -168,6 +184,7 @@ export const companies: Company[] = [
     suppliers: ["nvda", "amd", "intc", "avgo", "anet", "vrt", "smci"],
     customers: [],
     riskScore: 8, dependencyCount: 0,
+    totalDebt: 47.0, preferredStock: 0, minorityInterest: 0, cashAndEquivalents: 75.5,
   },
   {
     id: "orcl", name: "Oracle", ticker: "ORCL", category: "cloud-datacenters",
@@ -178,6 +195,7 @@ export const companies: Company[] = [
     suppliers: ["nvda", "avgo", "anet", "vrt"],
     customers: [],
     riskScore: 22, dependencyCount: 0,
+    totalDebt: 88.4, preferredStock: 0, minorityInterest: 0, cashAndEquivalents: 12.9,
   },
   // Networking & Cooling
   {
@@ -189,6 +207,7 @@ export const companies: Company[] = [
     suppliers: [],
     customers: ["amzn", "googl", "msft", "orcl"],
     riskScore: 20, dependencyCount: 4,
+    totalDebt: 0, preferredStock: 0, minorityInterest: 0, cashAndEquivalents: 3.4,
   },
   {
     id: "vrt", name: "Vertiv", ticker: "VRT", category: "networking-cooling",
@@ -199,6 +218,7 @@ export const companies: Company[] = [
     suppliers: [],
     customers: ["amzn", "googl", "msft", "orcl"],
     riskScore: 25, dependencyCount: 4,
+    totalDebt: 3.8, preferredStock: 0, minorityInterest: 0, cashAndEquivalents: 0.5,
   },
   {
     id: "crst", name: "Celestica", ticker: "CLS", category: "networking-cooling",
@@ -209,6 +229,7 @@ export const companies: Company[] = [
     suppliers: [],
     customers: ["amzn"],
     riskScore: 40, dependencyCount: 1,
+    totalDebt: 1.1, preferredStock: 0, minorityInterest: 0, cashAndEquivalents: 0.4,
   },
   {
     id: "smci", name: "Super Micro", ticker: "SMCI", category: "networking-cooling",
@@ -219,6 +240,7 @@ export const companies: Company[] = [
     suppliers: ["nvda"],
     customers: ["amzn", "msft"],
     riskScore: 72, dependencyCount: 2,
+    totalDebt: 2.0, preferredStock: 0, minorityInterest: 0, cashAndEquivalents: 1.4,
   },
 ];
 
