@@ -7,7 +7,6 @@ export type CompanyCategory =
   | "semi-equipment"
   | "packaging-assembly"
   | "substrates-pcb"
-  | "silicon-wafers"
   | "semi-materials"
   | "optical-transceivers"
   | "networking"
@@ -28,7 +27,6 @@ export const categoryLabels: Record<CompanyCategory, string> = {
   "semi-equipment": "Semi Equipment",
   "packaging-assembly": "Packaging & Assembly",
   "substrates-pcb": "Substrates / PCB",
-  "silicon-wafers": "Silicon Wafers",
   "semi-materials": "Materials & Gases",
   "optical-transceivers": "Optical / Transceivers",
   "networking": "Networking",
@@ -50,7 +48,6 @@ export const categoryColors: Record<CompanyCategory, string> = {
   "semi-equipment": "hsl(340, 70%, 55%)",
   "packaging-assembly": "hsl(15, 80%, 55%)",
   "substrates-pcb": "hsl(30, 80%, 50%)",
-  "silicon-wafers": "hsl(45, 85%, 50%)",
   "semi-materials": "hsl(60, 70%, 45%)",
   "optical-transceivers": "hsl(170, 70%, 45%)",
   "networking": "hsl(142, 71%, 45%)",
@@ -72,7 +69,6 @@ export const sectorPerformance = [
   { name: "Semi Equip", change: 0.2, color: categoryColors["semi-equipment"] },
   { name: "Packaging", change: -0.3, color: categoryColors["packaging-assembly"] },
   { name: "Substrates", change: 0.1, color: categoryColors["substrates-pcb"] },
-  { name: "Wafers", change: -0.5, color: categoryColors["silicon-wafers"] },
   { name: "Materials", change: 0.3, color: categoryColors["semi-materials"] },
   { name: "Optical", change: 1.8, color: categoryColors["optical-transceivers"] },
   { name: "Networking", change: 1.1, color: categoryColors["networking"] },

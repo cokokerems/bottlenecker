@@ -12,8 +12,7 @@ interface NodePosition {
 // Arrange categories in a grid layout for the expanded set
 const categoryPositions: Record<CompanyCategory, { cx: number; cy: number }> = {
   "semi-equipment": { cx: 120, cy: 120 },
-  "silicon-wafers": { cx: 120, cy: 280 },
-  "semi-materials": { cx: 120, cy: 440 },
+  "semi-materials": { cx: 120, cy: 280 },
   "eda": { cx: 300, cy: 120 },
   "chip-ip": { cx: 300, cy: 280 },
   "foundries": { cx: 300, cy: 440 },
