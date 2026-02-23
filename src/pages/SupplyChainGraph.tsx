@@ -1,5 +1,5 @@
 import { useCallback, useState, useRef, useEffect } from "react";
-import { companies, categoryColors, categoryLabels, type Company, type CompanyCategory } from "@/data/companies";
+import { companies, categoryColors, categoryLabels, type Company, type CompanyCategory, getPrimaryCategory } from "@/data/companies";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 
@@ -9,27 +9,49 @@ interface NodePosition {
   company: Company;
 }
 
+// Arrange categories in a grid layout for the expanded set
 const categoryPositions: Record<CompanyCategory, { cx: number; cy: number }> = {
-  "equipment-materials": { cx: 200, cy: 200 },
-  "chip-makers": { cx: 500, cy: 200 },
-  "networking-cooling": { cx: 500, cy: 450 },
-  "cloud-datacenters": { cx: 800, cy: 350 },
+  "semi-equipment": { cx: 120, cy: 120 },
+  "silicon-wafers": { cx: 120, cy: 280 },
+  "semi-materials": { cx: 120, cy: 440 },
+  "eda": { cx: 300, cy: 120 },
+  "chip-ip": { cx: 300, cy: 280 },
+  "foundries": { cx: 300, cy: 440 },
+  "memory": { cx: 480, cy: 120 },
+  "chip-designers": { cx: 480, cy: 280 },
+  "packaging-assembly": { cx: 480, cy: 440 },
+  "substrates-pcb": { cx: 660, cy: 120 },
+  "optical-transceivers": { cx: 660, cy: 280 },
+  "networking": { cx: 660, cy: 440 },
+  "server-oem": { cx: 840, cy: 120 },
+  "dc-power-cooling": { cx: 840, cy: 280 },
+  "dc-construction": { cx: 840, cy: 440 },
+  "hyperscalers": { cx: 1020, cy: 120 },
+  "dc-reits": { cx: 1020, cy: 280 },
+  "power-grid": { cx: 1020, cy: 440 },
+  "base-materials": { cx: 1020, cy: 560 },
 };
 
 function getNodePositions(): NodePosition[] {
   const positions: NodePosition[] = [];
   const byCategory = new Map<CompanyCategory, Company[]>();
-  
+  const assigned = new Set<string>();
+
+  // Assign each company to its primary category for graph positioning
   companies.forEach((c) => {
-    const list = byCategory.get(c.category) || [];
+    if (assigned.has(c.id)) return;
+    assigned.add(c.id);
+    const cat = getPrimaryCategory(c);
+    const list = byCategory.get(cat) || [];
     list.push(c);
-    byCategory.set(c.category, list);
+    byCategory.set(cat, list);
   });
 
   byCategory.forEach((comps, cat) => {
     const center = categoryPositions[cat];
-    const angleStep = (2 * Math.PI) / comps.length;
-    const radius = 70 + comps.length * 8;
+    if (!center) return;
+    const angleStep = (2 * Math.PI) / Math.max(comps.length, 1);
+    const radius = 40 + comps.length * 6;
     comps.forEach((company, i) => {
       const angle = angleStep * i - Math.PI / 2;
       positions.push({
@@ -65,7 +87,7 @@ export default function SupplyChainGraph() {
   const selected = selectedId ? companies.find((c) => c.id === selectedId) : null;
 
   function getNodeSize(company: Company): number {
-    return 14 + company.dependencyCount * 3;
+    return 10 + company.dependencyCount * 2;
   }
 
   function getRiskColor(score: number): string {
@@ -81,23 +103,23 @@ export default function SupplyChainGraph() {
         <p className="text-sm text-muted-foreground">Interactive view of AI infrastructure supplier/customer relationships</p>
       </div>
 
-      <div className="flex gap-4 text-xs">
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
         {Object.entries(categoryLabels).map(([key, label]) => (
           <div key={key} className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: categoryColors[key as CompanyCategory] }} />
+            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: categoryColors[key as CompanyCategory] }} />
             <span className="text-muted-foreground">{label}</span>
           </div>
         ))}
         <div className="ml-4 flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-full bg-success" />
+          <div className="w-2.5 h-2.5 rounded-full bg-success" />
           <span className="text-muted-foreground">Low risk</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-full bg-warning" />
+          <div className="w-2.5 h-2.5 rounded-full bg-warning" />
           <span className="text-muted-foreground">Medium</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-full bg-destructive" />
+          <div className="w-2.5 h-2.5 rounded-full bg-destructive" />
           <span className="text-muted-foreground">High risk</span>
         </div>
       </div>
@@ -106,15 +128,15 @@ export default function SupplyChainGraph() {
         <div className="col-span-3">
           <Card className="border-border/50 overflow-hidden">
             <CardContent className="p-0">
-              <svg viewBox="0 0 1000 600" className="w-full h-[550px]">
+              <svg viewBox="0 0 1200 650" className="w-full h-[600px]">
                 {/* Category labels */}
                 {Object.entries(categoryPositions).map(([cat, pos]) => (
                   <text
                     key={cat}
                     x={pos.cx}
-                    y={pos.cy - (cat === "equipment-materials" ? 110 : cat === "chip-makers" ? 110 : 100)}
+                    y={pos.cy - 55}
                     textAnchor="middle"
-                    className="fill-muted-foreground text-[11px] font-medium"
+                    className="fill-muted-foreground text-[8px] font-medium"
                   >
                     {categoryLabels[cat as CompanyCategory]}
                   </text>
@@ -130,13 +152,13 @@ export default function SupplyChainGraph() {
                   </marker>
                 </defs>
 
-                {/* Edges (supplier → customer) */}
+                {/* Edges */}
                 {edges.map((edge, i) => {
-                  // Shorten line so arrow doesn't overlap node
                   const dx = edge.to.x - edge.from.x;
                   const dy = edge.to.y - edge.from.y;
                   const len = Math.sqrt(dx * dx + dy * dy);
-                  const nodeRadius = 14;
+                  if (len === 0) return null;
+                  const nodeRadius = 10;
                   const x2 = edge.to.x - (dx / len) * nodeRadius;
                   const y2 = edge.to.y - (dy / len) * nodeRadius;
                   return (
@@ -147,8 +169,8 @@ export default function SupplyChainGraph() {
                       x2={x2}
                       y2={y2}
                       stroke={edge.highlighted ? "hsl(217, 91%, 60%)" : "hsl(225, 15%, 25%)"}
-                      strokeWidth={edge.highlighted ? 2 : 1}
-                      strokeOpacity={edge.highlighted ? 0.9 : 0.5}
+                      strokeWidth={edge.highlighted ? 2 : 0.5}
+                      strokeOpacity={edge.highlighted ? 0.9 : 0.3}
                       markerEnd={edge.highlighted ? "url(#arrow-highlighted)" : "url(#arrow)"}
                     />
                   );
@@ -166,6 +188,7 @@ export default function SupplyChainGraph() {
                     companies.find(c => c.id === hoveredId)?.customers.includes(node.company.id)
                   ) : false;
                   const dimmed = hoveredId !== null && !isHovered && !isConnected;
+                  const primaryCat = getPrimaryCategory(node.company);
 
                   return (
                     <g
@@ -174,17 +197,16 @@ export default function SupplyChainGraph() {
                       onMouseLeave={() => setHoveredId(null)}
                       onClick={() => setSelectedId(selectedId === node.company.id ? null : node.company.id)}
                       className="cursor-pointer"
-                      opacity={dimmed ? 0.25 : 1}
+                      opacity={dimmed ? 0.15 : 1}
                     >
-                      {/* Risk glow */}
                       {node.company.riskScore >= 50 && (
                         <circle
                           cx={node.x}
                           cy={node.y}
-                          r={size + 6}
+                          r={size + 4}
                           fill="none"
                           stroke={getRiskColor(node.company.riskScore)}
-                          strokeWidth={2}
+                          strokeWidth={1.5}
                           strokeOpacity={0.4}
                           className="animate-pulse-glow"
                         />
@@ -192,23 +214,23 @@ export default function SupplyChainGraph() {
                       <circle
                         cx={node.x}
                         cy={node.y}
-                        r={isHovered || isSelected ? size + 3 : size}
+                        r={isHovered || isSelected ? size + 2 : size}
                         fill={getRiskColor(node.company.riskScore)}
                         fillOpacity={0.15}
-                        stroke={categoryColors[node.company.category]}
-                        strokeWidth={isSelected ? 3 : 2}
+                        stroke={categoryColors[primaryCat]}
+                        strokeWidth={isSelected ? 2.5 : 1.5}
                       />
                       <circle
                         cx={node.x}
                         cy={node.y}
-                        r={4}
+                        r={3}
                         fill={getRiskColor(node.company.riskScore)}
                       />
                       <text
                         x={node.x}
-                        y={node.y + size + 14}
+                        y={node.y + size + 10}
                         textAnchor="middle"
-                        className="fill-foreground text-[10px] font-mono font-medium"
+                        className="fill-foreground text-[7px] font-mono font-medium"
                       >
                         {node.company.ticker}
                       </text>

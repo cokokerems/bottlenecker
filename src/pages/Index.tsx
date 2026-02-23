@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { sectorPerformance, companies, alerts as alertData, categoryLabels, type CompanyCategory } from "@/data/companies";
+import { sectorPerformance, companies, alerts as alertData } from "@/data/companies";
 import { TrendingUp, TrendingDown, AlertTriangle, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { SparklineChart } from "@/components/SparklineChart";
 import { Link } from "react-router-dom";
@@ -15,7 +15,7 @@ export default function DashboardHome() {
       </div>
 
       {/* Sector Performance */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
         {sectorPerformance.map((sector) => (
           <Card key={sector.name} className="border-border/50">
             <CardContent className="p-4">

@@ -1,27 +1,28 @@
 // M&A Valuation data fields per company
 export interface ValuationData {
-  ebitda: number; // billions
-  ebit: number; // billions
-  depreciation: number; // billions
-  capex: number; // billions
-  changeInWorkingCapital: number; // billions
-  taxRate: number; // percentage (0-1)
-  sharesOutstanding: number; // billions (fully diluted)
-  wacc: number; // percentage (0-1)
-  terminalGrowthRate: number; // percentage (0-1)
-  costOfEquity: number; // percentage (0-1)
-  costOfDebt: number; // percentage (0-1)
-  projectedFCF: number[]; // 5-year projected FCF (billions)
-  exitMultiple: number; // EV/EBITDA exit multiple
-  offerPremium: number; // takeover premium percentage (0-1)
-  costSynergies: number; // billions
-  revenueSynergies: number; // billions
-  synergyDiscountRate: number; // percentage (0-1)
-  buyerEPS: number; // dollars
-  proFormaEPS: number; // dollars
+  ebitda: number;
+  ebit: number;
+  depreciation: number;
+  capex: number;
+  changeInWorkingCapital: number;
+  taxRate: number;
+  sharesOutstanding: number;
+  wacc: number;
+  terminalGrowthRate: number;
+  costOfEquity: number;
+  costOfDebt: number;
+  projectedFCF: number[];
+  exitMultiple: number;
+  offerPremium: number;
+  costSynergies: number;
+  revenueSynergies: number;
+  synergyDiscountRate: number;
+  buyerEPS: number;
+  proFormaEPS: number;
 }
 
 export const valuationData: Record<string, ValuationData> = {
+  // ─── Original 18 ───
   nvda: {
     ebitda: 81.2, ebit: 76.8, depreciation: 4.4, capex: 3.2, changeInWorkingCapital: 1.8,
     taxRate: 0.12, sharesOutstanding: 24.4, wacc: 0.095, terminalGrowthRate: 0.03,
@@ -140,5 +141,406 @@ export const valuationData: Record<string, ValuationData> = {
     costOfEquity: 0.14, costOfDebt: 0.06, projectedFCF: [0.5, 0.7, 0.9, 1.0, 1.1],
     exitMultiple: 8, offerPremium: 0.40, costSynergies: 0.2, revenueSynergies: 0.15,
     synergyDiscountRate: 0.11, buyerEPS: 1.38, proFormaEPS: 1.42,
+  },
+
+  // ─── New companies ───
+  mrvl: {
+    ebitda: 1.5, ebit: 1.0, depreciation: 0.5, capex: 0.3, changeInWorkingCapital: 0.1,
+    taxRate: 0.10, sharesOutstanding: 0.86, wacc: 0.10, terminalGrowthRate: 0.03,
+    costOfEquity: 0.115, costOfDebt: 0.04, projectedFCF: [0.8, 1.2, 1.6, 2.0, 2.5],
+    exitMultiple: 25, offerPremium: 0.30, costSynergies: 0.3, revenueSynergies: 0.5,
+    synergyDiscountRate: 0.10, buyerEPS: 0.93, proFormaEPS: 1.02,
+  },
+  arm: {
+    ebitda: 1.2, ebit: 1.0, depreciation: 0.2, capex: 0.1, changeInWorkingCapital: 0.05,
+    taxRate: 0.15, sharesOutstanding: 1.03, wacc: 0.10, terminalGrowthRate: 0.04,
+    costOfEquity: 0.12, costOfDebt: 0.03, projectedFCF: [0.8, 1.1, 1.4, 1.8, 2.2],
+    exitMultiple: 50, offerPremium: 0.35, costSynergies: 0.1, revenueSynergies: 0.8,
+    synergyDiscountRate: 0.10, buyerEPS: 0.87, proFormaEPS: 0.95,
+  },
+  rmbs: {
+    ebitda: 0.25, ebit: 0.2, depreciation: 0.05, capex: 0.03, changeInWorkingCapital: 0.01,
+    taxRate: 0.12, sharesOutstanding: 0.14, wacc: 0.10, terminalGrowthRate: 0.025,
+    costOfEquity: 0.115, costOfDebt: 0.04, projectedFCF: [0.15, 0.18, 0.22, 0.25, 0.28],
+    exitMultiple: 20, offerPremium: 0.30, costSynergies: 0.02, revenueSynergies: 0.05,
+    synergyDiscountRate: 0.10, buyerEPS: 1.29, proFormaEPS: 1.35,
+  },
+  cdns: {
+    ebitda: 1.8, ebit: 1.5, depreciation: 0.3, capex: 0.15, changeInWorkingCapital: 0.1,
+    taxRate: 0.14, sharesOutstanding: 0.27, wacc: 0.095, terminalGrowthRate: 0.03,
+    costOfEquity: 0.105, costOfDebt: 0.035, projectedFCF: [1.2, 1.4, 1.6, 1.8, 2.0],
+    exitMultiple: 30, offerPremium: 0.25, costSynergies: 0.2, revenueSynergies: 0.4,
+    synergyDiscountRate: 0.095, buyerEPS: 4.81, proFormaEPS: 4.98,
+  },
+  snps: {
+    ebitda: 2.4, ebit: 2.0, depreciation: 0.4, capex: 0.2, changeInWorkingCapital: 0.15,
+    taxRate: 0.14, sharesOutstanding: 0.155, wacc: 0.09, terminalGrowthRate: 0.03,
+    costOfEquity: 0.10, costOfDebt: 0.035, projectedFCF: [1.5, 1.7, 2.0, 2.2, 2.5],
+    exitMultiple: 28, offerPremium: 0.25, costSynergies: 0.3, revenueSynergies: 0.5,
+    synergyDiscountRate: 0.09, buyerEPS: 11.61, proFormaEPS: 11.90,
+  },
+  "siemens-eda": {
+    ebitda: 0.8, ebit: 0.6, depreciation: 0.2, capex: 0.1, changeInWorkingCapital: 0.05,
+    taxRate: 0.25, sharesOutstanding: 0.74, wacc: 0.08, terminalGrowthRate: 0.02,
+    costOfEquity: 0.09, costOfDebt: 0.03, projectedFCF: [0.4, 0.45, 0.5, 0.55, 0.6],
+    exitMultiple: 15, offerPremium: 0.20, costSynergies: 0.1, revenueSynergies: 0.15,
+    synergyDiscountRate: 0.08, buyerEPS: 0.68, proFormaEPS: 0.72,
+  },
+  samsung: {
+    ebitda: 42.0, ebit: 28.0, depreciation: 14.0, capex: 35.0, changeInWorkingCapital: 3.0,
+    taxRate: 0.22, sharesOutstanding: 6.06, wacc: 0.09, terminalGrowthRate: 0.025,
+    costOfEquity: 0.10, costOfDebt: 0.035, projectedFCF: [8.0, 12.0, 16.0, 20.0, 24.0],
+    exitMultiple: 8, offerPremium: 0.25, costSynergies: 3.0, revenueSynergies: 5.0,
+    synergyDiscountRate: 0.09, buyerEPS: 3.05, proFormaEPS: 3.18,
+  },
+  gfs: {
+    ebitda: 1.8, ebit: 1.0, depreciation: 0.8, capex: 1.5, changeInWorkingCapital: 0.1,
+    taxRate: 0.10, sharesOutstanding: 0.55, wacc: 0.10, terminalGrowthRate: 0.02,
+    costOfEquity: 0.115, costOfDebt: 0.045, projectedFCF: [0.3, 0.5, 0.7, 0.9, 1.1],
+    exitMultiple: 10, offerPremium: 0.30, costSynergies: 0.3, revenueSynergies: 0.2,
+    synergyDiscountRate: 0.10, buyerEPS: 1.27, proFormaEPS: 1.32,
+  },
+  skhynix: {
+    ebitda: 22.0, ebit: 15.0, depreciation: 7.0, capex: 12.0, changeInWorkingCapital: 1.5,
+    taxRate: 0.20, sharesOutstanding: 0.73, wacc: 0.10, terminalGrowthRate: 0.025,
+    costOfEquity: 0.115, costOfDebt: 0.04, projectedFCF: [6.0, 8.5, 11.0, 13.5, 15.5],
+    exitMultiple: 8, offerPremium: 0.25, costSynergies: 1.5, revenueSynergies: 2.0,
+    synergyDiscountRate: 0.10, buyerEPS: 17.53, proFormaEPS: 18.20,
+  },
+  mu: {
+    ebitda: 12.5, ebit: 8.0, depreciation: 4.5, capex: 8.0, changeInWorkingCapital: 0.8,
+    taxRate: 0.12, sharesOutstanding: 1.09, wacc: 0.10, terminalGrowthRate: 0.025,
+    costOfEquity: 0.115, costOfDebt: 0.04, projectedFCF: [3.5, 5.0, 6.5, 8.0, 9.5],
+    exitMultiple: 8, offerPremium: 0.28, costSynergies: 1.0, revenueSynergies: 1.5,
+    synergyDiscountRate: 0.10, buyerEPS: 5.32, proFormaEPS: 5.48,
+  },
+  klac: {
+    ebitda: 4.8, ebit: 4.2, depreciation: 0.6, capex: 0.3, changeInWorkingCapital: 0.15,
+    taxRate: 0.13, sharesOutstanding: 0.136, wacc: 0.09, terminalGrowthRate: 0.025,
+    costOfEquity: 0.10, costOfDebt: 0.035, projectedFCF: [3.5, 3.8, 4.1, 4.4, 4.7],
+    exitMultiple: 18, offerPremium: 0.25, costSynergies: 0.3, revenueSynergies: 0.4,
+    synergyDiscountRate: 0.09, buyerEPS: 25.74, proFormaEPS: 26.20,
+  },
+  tel: {
+    ebitda: 5.5, ebit: 4.5, depreciation: 1.0, capex: 0.8, changeInWorkingCapital: 0.3,
+    taxRate: 0.25, sharesOutstanding: 0.47, wacc: 0.085, terminalGrowthRate: 0.025,
+    costOfEquity: 0.095, costOfDebt: 0.025, projectedFCF: [2.8, 3.2, 3.6, 4.0, 4.3],
+    exitMultiple: 14, offerPremium: 0.25, costSynergies: 0.4, revenueSynergies: 0.5,
+    synergyDiscountRate: 0.085, buyerEPS: 8.51, proFormaEPS: 8.72,
+  },
+  asmi: {
+    ebitda: 1.2, ebit: 1.0, depreciation: 0.2, capex: 0.15, changeInWorkingCapital: 0.05,
+    taxRate: 0.15, sharesOutstanding: 0.049, wacc: 0.095, terminalGrowthRate: 0.03,
+    costOfEquity: 0.105, costOfDebt: 0.025, projectedFCF: [0.7, 0.85, 1.0, 1.15, 1.3],
+    exitMultiple: 22, offerPremium: 0.28, costSynergies: 0.08, revenueSynergies: 0.12,
+    synergyDiscountRate: 0.095, buyerEPS: 16.33, proFormaEPS: 16.85,
+  },
+  aset: {
+    ebitda: 2.8, ebit: 1.8, depreciation: 1.0, capex: 1.5, changeInWorkingCapital: 0.3,
+    taxRate: 0.18, sharesOutstanding: 1.96, wacc: 0.10, terminalGrowthRate: 0.02,
+    costOfEquity: 0.115, costOfDebt: 0.04, projectedFCF: [0.8, 1.0, 1.2, 1.5, 1.7],
+    exitMultiple: 8, offerPremium: 0.25, costSynergies: 0.2, revenueSynergies: 0.3,
+    synergyDiscountRate: 0.10, buyerEPS: 0.71, proFormaEPS: 0.75,
+  },
+  amkr: {
+    ebitda: 0.9, ebit: 0.55, depreciation: 0.35, capex: 0.5, changeInWorkingCapital: 0.1,
+    taxRate: 0.15, sharesOutstanding: 0.246, wacc: 0.10, terminalGrowthRate: 0.02,
+    costOfEquity: 0.115, costOfDebt: 0.04, projectedFCF: [0.2, 0.3, 0.4, 0.5, 0.55],
+    exitMultiple: 8, offerPremium: 0.28, costSynergies: 0.08, revenueSynergies: 0.1,
+    synergyDiscountRate: 0.10, buyerEPS: 1.63, proFormaEPS: 1.68,
+  },
+  jcet: {
+    ebitda: 0.6, ebit: 0.3, depreciation: 0.3, capex: 0.4, changeInWorkingCapital: 0.1,
+    taxRate: 0.20, sharesOutstanding: 0.59, wacc: 0.11, terminalGrowthRate: 0.02,
+    costOfEquity: 0.125, costOfDebt: 0.045, projectedFCF: [0.08, 0.12, 0.18, 0.22, 0.28],
+    exitMultiple: 7, offerPremium: 0.25, costSynergies: 0.05, revenueSynergies: 0.08,
+    synergyDiscountRate: 0.10, buyerEPS: 0.34, proFormaEPS: 0.36,
+  },
+  ibiden: {
+    ebitda: 0.8, ebit: 0.5, depreciation: 0.3, capex: 0.4, changeInWorkingCapital: 0.05,
+    taxRate: 0.25, sharesOutstanding: 0.195, wacc: 0.085, terminalGrowthRate: 0.02,
+    costOfEquity: 0.095, costOfDebt: 0.025, projectedFCF: [0.2, 0.25, 0.3, 0.35, 0.4],
+    exitMultiple: 10, offerPremium: 0.25, costSynergies: 0.05, revenueSynergies: 0.08,
+    synergyDiscountRate: 0.085, buyerEPS: 2.05, proFormaEPS: 2.12,
+  },
+  unimicron: {
+    ebitda: 0.7, ebit: 0.45, depreciation: 0.25, capex: 0.35, changeInWorkingCapital: 0.05,
+    taxRate: 0.20, sharesOutstanding: 0.40, wacc: 0.09, terminalGrowthRate: 0.02,
+    costOfEquity: 0.10, costOfDebt: 0.03, projectedFCF: [0.15, 0.2, 0.25, 0.3, 0.35],
+    exitMultiple: 10, offerPremium: 0.25, costSynergies: 0.04, revenueSynergies: 0.06,
+    synergyDiscountRate: 0.09, buyerEPS: 0.88, proFormaEPS: 0.92,
+  },
+  nanyapcb: {
+    ebitda: 0.35, ebit: 0.25, depreciation: 0.1, capex: 0.15, changeInWorkingCapital: 0.03,
+    taxRate: 0.20, sharesOutstanding: 0.32, wacc: 0.09, terminalGrowthRate: 0.02,
+    costOfEquity: 0.10, costOfDebt: 0.03, projectedFCF: [0.1, 0.12, 0.15, 0.18, 0.2],
+    exitMultiple: 8, offerPremium: 0.22, costSynergies: 0.02, revenueSynergies: 0.03,
+    synergyDiscountRate: 0.09, buyerEPS: 0.63, proFormaEPS: 0.65,
+  },
+  ttmi: {
+    ebitda: 0.4, ebit: 0.2, depreciation: 0.2, capex: 0.15, changeInWorkingCapital: 0.03,
+    taxRate: 0.22, sharesOutstanding: 0.15, wacc: 0.10, terminalGrowthRate: 0.02,
+    costOfEquity: 0.115, costOfDebt: 0.05, projectedFCF: [0.08, 0.1, 0.12, 0.14, 0.16],
+    exitMultiple: 7, offerPremium: 0.25, costSynergies: 0.03, revenueSynergies: 0.04,
+    synergyDiscountRate: 0.10, buyerEPS: 1.00, proFormaEPS: 1.04,
+  },
+  shinetsu: {
+    ebitda: 7.5, ebit: 6.0, depreciation: 1.5, capex: 2.0, changeInWorkingCapital: 0.5,
+    taxRate: 0.25, sharesOutstanding: 1.76, wacc: 0.075, terminalGrowthRate: 0.02,
+    costOfEquity: 0.085, costOfDebt: 0.015, projectedFCF: [3.8, 4.2, 4.6, 5.0, 5.4],
+    exitMultiple: 12, offerPremium: 0.22, costSynergies: 0.5, revenueSynergies: 0.8,
+    synergyDiscountRate: 0.08, buyerEPS: 2.95, proFormaEPS: 3.05,
+  },
+  sumco: {
+    ebitda: 0.7, ebit: 0.4, depreciation: 0.3, capex: 0.4, changeInWorkingCapital: 0.05,
+    taxRate: 0.25, sharesOutstanding: 0.36, wacc: 0.085, terminalGrowthRate: 0.02,
+    costOfEquity: 0.095, costOfDebt: 0.02, projectedFCF: [0.15, 0.2, 0.25, 0.3, 0.35],
+    exitMultiple: 8, offerPremium: 0.25, costSynergies: 0.05, revenueSynergies: 0.08,
+    synergyDiscountRate: 0.085, buyerEPS: 0.83, proFormaEPS: 0.87,
+  },
+  globalwafers: {
+    ebitda: 0.6, ebit: 0.42, depreciation: 0.18, capex: 0.3, changeInWorkingCapital: 0.05,
+    taxRate: 0.20, sharesOutstanding: 0.54, wacc: 0.09, terminalGrowthRate: 0.02,
+    costOfEquity: 0.10, costOfDebt: 0.03, projectedFCF: [0.15, 0.2, 0.25, 0.3, 0.35],
+    exitMultiple: 9, offerPremium: 0.25, costSynergies: 0.04, revenueSynergies: 0.06,
+    synergyDiscountRate: 0.09, buyerEPS: 0.65, proFormaEPS: 0.68,
+  },
+  siltronic: {
+    ebitda: 0.35, ebit: 0.18, depreciation: 0.17, capex: 0.25, changeInWorkingCapital: 0.03,
+    taxRate: 0.28, sharesOutstanding: 0.047, wacc: 0.085, terminalGrowthRate: 0.02,
+    costOfEquity: 0.095, costOfDebt: 0.03, projectedFCF: [0.05, 0.08, 0.1, 0.12, 0.14],
+    exitMultiple: 7, offerPremium: 0.22, costSynergies: 0.02, revenueSynergies: 0.03,
+    synergyDiscountRate: 0.085, buyerEPS: 2.55, proFormaEPS: 2.62,
+  },
+  entg: {
+    ebitda: 1.2, ebit: 0.8, depreciation: 0.4, capex: 0.3, changeInWorkingCapital: 0.1,
+    taxRate: 0.15, sharesOutstanding: 0.15, wacc: 0.095, terminalGrowthRate: 0.025,
+    costOfEquity: 0.105, costOfDebt: 0.045, projectedFCF: [0.45, 0.55, 0.65, 0.75, 0.85],
+    exitMultiple: 16, offerPremium: 0.25, costSynergies: 0.1, revenueSynergies: 0.15,
+    synergyDiscountRate: 0.095, buyerEPS: 3.33, proFormaEPS: 3.45,
+  },
+  "ai-liquide": {
+    ebitda: 7.5, ebit: 5.5, depreciation: 2.0, capex: 3.0, changeInWorkingCapital: 0.3,
+    taxRate: 0.25, sharesOutstanding: 0.51, wacc: 0.075, terminalGrowthRate: 0.02,
+    costOfEquity: 0.085, costOfDebt: 0.025, projectedFCF: [2.5, 2.8, 3.1, 3.4, 3.7],
+    exitMultiple: 12, offerPremium: 0.20, costSynergies: 0.5, revenueSynergies: 0.8,
+    synergyDiscountRate: 0.08, buyerEPS: 6.86, proFormaEPS: 7.02,
+  },
+  lin: {
+    ebitda: 12.5, ebit: 9.5, depreciation: 3.0, capex: 4.0, changeInWorkingCapital: 0.5,
+    taxRate: 0.22, sharesOutstanding: 0.48, wacc: 0.075, terminalGrowthRate: 0.02,
+    costOfEquity: 0.085, costOfDebt: 0.025, projectedFCF: [4.5, 5.0, 5.5, 6.0, 6.5],
+    exitMultiple: 14, offerPremium: 0.18, costSynergies: 0.8, revenueSynergies: 1.0,
+    synergyDiscountRate: 0.08, buyerEPS: 14.17, proFormaEPS: 14.50,
+  },
+  jsr: {
+    ebitda: 0.65, ebit: 0.45, depreciation: 0.2, capex: 0.25, changeInWorkingCapital: 0.05,
+    taxRate: 0.25, sharesOutstanding: 0.26, wacc: 0.085, terminalGrowthRate: 0.02,
+    costOfEquity: 0.095, costOfDebt: 0.025, projectedFCF: [0.15, 0.2, 0.25, 0.28, 0.32],
+    exitMultiple: 10, offerPremium: 0.25, costSynergies: 0.04, revenueSynergies: 0.06,
+    synergyDiscountRate: 0.085, buyerEPS: 1.15, proFormaEPS: 1.20,
+  },
+  tok: {
+    ebitda: 0.35, ebit: 0.25, depreciation: 0.1, capex: 0.12, changeInWorkingCapital: 0.03,
+    taxRate: 0.25, sharesOutstanding: 0.082, wacc: 0.085, terminalGrowthRate: 0.02,
+    costOfEquity: 0.095, costOfDebt: 0.02, projectedFCF: [0.1, 0.12, 0.14, 0.16, 0.18],
+    exitMultiple: 10, offerPremium: 0.22, costSynergies: 0.02, revenueSynergies: 0.03,
+    synergyDiscountRate: 0.085, buyerEPS: 2.20, proFormaEPS: 2.28,
+  },
+  cohr: {
+    ebitda: 0.9, ebit: 0.5, depreciation: 0.4, capex: 0.35, changeInWorkingCapital: 0.1,
+    taxRate: 0.15, sharesOutstanding: 0.155, wacc: 0.11, terminalGrowthRate: 0.03,
+    costOfEquity: 0.125, costOfDebt: 0.05, projectedFCF: [0.3, 0.5, 0.7, 0.9, 1.1],
+    exitMultiple: 14, offerPremium: 0.30, costSynergies: 0.1, revenueSynergies: 0.2,
+    synergyDiscountRate: 0.10, buyerEPS: 1.94, proFormaEPS: 2.05,
+  },
+  lite: {
+    ebitda: 0.25, ebit: 0.05, depreciation: 0.2, capex: 0.15, changeInWorkingCapital: 0.03,
+    taxRate: 0.12, sharesOutstanding: 0.067, wacc: 0.11, terminalGrowthRate: 0.025,
+    costOfEquity: 0.125, costOfDebt: 0.05, projectedFCF: [0.05, 0.1, 0.15, 0.2, 0.25],
+    exitMultiple: 12, offerPremium: 0.30, costSynergies: 0.05, revenueSynergies: 0.08,
+    synergyDiscountRate: 0.10, buyerEPS: -1.49, proFormaEPS: -1.35,
+  },
+  aaoi: {
+    ebitda: 0.02, ebit: -0.01, depreciation: 0.03, capex: 0.02, changeInWorkingCapital: 0.01,
+    taxRate: 0.10, sharesOutstanding: 0.062, wacc: 0.13, terminalGrowthRate: 0.02,
+    costOfEquity: 0.15, costOfDebt: 0.06, projectedFCF: [-0.01, 0.02, 0.04, 0.06, 0.08],
+    exitMultiple: 8, offerPremium: 0.35, costSynergies: 0.01, revenueSynergies: 0.02,
+    synergyDiscountRate: 0.12, buyerEPS: -0.32, proFormaEPS: -0.28,
+  },
+  fn: {
+    ebitda: 0.5, ebit: 0.42, depreciation: 0.08, capex: 0.05, changeInWorkingCapital: 0.03,
+    taxRate: 0.08, sharesOutstanding: 0.036, wacc: 0.10, terminalGrowthRate: 0.03,
+    costOfEquity: 0.11, costOfDebt: 0.02, projectedFCF: [0.35, 0.42, 0.5, 0.58, 0.65],
+    exitMultiple: 18, offerPremium: 0.25, costSynergies: 0.04, revenueSynergies: 0.08,
+    synergyDiscountRate: 0.10, buyerEPS: 11.11, proFormaEPS: 11.45,
+  },
+  cien: {
+    ebitda: 0.75, ebit: 0.55, depreciation: 0.2, capex: 0.12, changeInWorkingCapital: 0.05,
+    taxRate: 0.15, sharesOutstanding: 0.145, wacc: 0.10, terminalGrowthRate: 0.025,
+    costOfEquity: 0.11, costOfDebt: 0.04, projectedFCF: [0.35, 0.42, 0.5, 0.58, 0.65],
+    exitMultiple: 14, offerPremium: 0.28, costSynergies: 0.06, revenueSynergies: 0.1,
+    synergyDiscountRate: 0.10, buyerEPS: 2.76, proFormaEPS: 2.88,
+  },
+  csco: {
+    ebitda: 18.5, ebit: 15.0, depreciation: 3.5, capex: 2.0, changeInWorkingCapital: 0.8,
+    taxRate: 0.18, sharesOutstanding: 4.04, wacc: 0.085, terminalGrowthRate: 0.02,
+    costOfEquity: 0.095, costOfDebt: 0.035, projectedFCF: [11.5, 12.0, 12.5, 13.0, 13.5],
+    exitMultiple: 12, offerPremium: 0.22, costSynergies: 1.5, revenueSynergies: 2.0,
+    synergyDiscountRate: 0.085, buyerEPS: 3.17, proFormaEPS: 3.28,
+  },
+  dell: {
+    ebitda: 8.5, ebit: 5.5, depreciation: 3.0, capex: 2.5, changeInWorkingCapital: 0.5,
+    taxRate: 0.20, sharesOutstanding: 0.74, wacc: 0.095, terminalGrowthRate: 0.025,
+    costOfEquity: 0.11, costOfDebt: 0.045, projectedFCF: [3.5, 4.2, 5.0, 5.8, 6.5],
+    exitMultiple: 10, offerPremium: 0.25, costSynergies: 1.0, revenueSynergies: 1.5,
+    synergyDiscountRate: 0.095, buyerEPS: 6.08, proFormaEPS: 6.30,
+  },
+  hpe: {
+    ebitda: 5.5, ebit: 3.5, depreciation: 2.0, capex: 1.8, changeInWorkingCapital: 0.3,
+    taxRate: 0.18, sharesOutstanding: 1.31, wacc: 0.09, terminalGrowthRate: 0.02,
+    costOfEquity: 0.10, costOfDebt: 0.04, projectedFCF: [1.8, 2.1, 2.4, 2.7, 3.0],
+    exitMultiple: 8, offerPremium: 0.25, costSynergies: 0.5, revenueSynergies: 0.8,
+    synergyDiscountRate: 0.09, buyerEPS: 1.60, proFormaEPS: 1.68,
+  },
+  foxconn: {
+    ebitda: 10.0, ebit: 6.5, depreciation: 3.5, capex: 4.0, changeInWorkingCapital: 1.5,
+    taxRate: 0.15, sharesOutstanding: 11.21, wacc: 0.10, terminalGrowthRate: 0.02,
+    costOfEquity: 0.115, costOfDebt: 0.035, projectedFCF: [3.5, 4.0, 4.5, 5.0, 5.5],
+    exitMultiple: 8, offerPremium: 0.20, costSynergies: 0.8, revenueSynergies: 1.2,
+    synergyDiscountRate: 0.10, buyerEPS: 0.49, proFormaEPS: 0.52,
+  },
+  quanta: {
+    ebitda: 2.5, ebit: 1.8, depreciation: 0.7, capex: 0.6, changeInWorkingCapital: 0.3,
+    taxRate: 0.18, sharesOutstanding: 4.0, wacc: 0.10, terminalGrowthRate: 0.02,
+    costOfEquity: 0.115, costOfDebt: 0.035, projectedFCF: [0.9, 1.1, 1.3, 1.5, 1.7],
+    exitMultiple: 10, offerPremium: 0.22, costSynergies: 0.2, revenueSynergies: 0.3,
+    synergyDiscountRate: 0.10, buyerEPS: 0.38, proFormaEPS: 0.40,
+  },
+  wistron: {
+    ebitda: 1.0, ebit: 0.7, depreciation: 0.3, capex: 0.25, changeInWorkingCapital: 0.1,
+    taxRate: 0.18, sharesOutstanding: 2.02, wacc: 0.10, terminalGrowthRate: 0.02,
+    costOfEquity: 0.115, costOfDebt: 0.04, projectedFCF: [0.35, 0.4, 0.45, 0.5, 0.55],
+    exitMultiple: 7, offerPremium: 0.22, costSynergies: 0.08, revenueSynergies: 0.1,
+    synergyDiscountRate: 0.10, buyerEPS: 0.30, proFormaEPS: 0.32,
+  },
+  etn: {
+    ebitda: 5.2, ebit: 4.2, depreciation: 1.0, capex: 0.8, changeInWorkingCapital: 0.3,
+    taxRate: 0.18, sharesOutstanding: 0.40, wacc: 0.085, terminalGrowthRate: 0.025,
+    costOfEquity: 0.095, costOfDebt: 0.035, projectedFCF: [3.0, 3.4, 3.8, 4.2, 4.6],
+    exitMultiple: 16, offerPremium: 0.22, costSynergies: 0.4, revenueSynergies: 0.6,
+    synergyDiscountRate: 0.085, buyerEPS: 8.75, proFormaEPS: 8.98,
+  },
+  "se-electric": {
+    ebitda: 7.8, ebit: 6.0, depreciation: 1.8, capex: 1.5, changeInWorkingCapital: 0.5,
+    taxRate: 0.25, sharesOutstanding: 0.49, wacc: 0.08, terminalGrowthRate: 0.025,
+    costOfEquity: 0.09, costOfDebt: 0.03, projectedFCF: [3.5, 4.0, 4.5, 5.0, 5.5],
+    exitMultiple: 14, offerPremium: 0.20, costSynergies: 0.6, revenueSynergies: 0.8,
+    synergyDiscountRate: 0.08, buyerEPS: 8.57, proFormaEPS: 8.80,
+  },
+  abb: {
+    ebitda: 6.5, ebit: 5.0, depreciation: 1.5, capex: 1.2, changeInWorkingCapital: 0.4,
+    taxRate: 0.22, sharesOutstanding: 1.87, wacc: 0.08, terminalGrowthRate: 0.02,
+    costOfEquity: 0.09, costOfDebt: 0.025, projectedFCF: [3.0, 3.3, 3.6, 3.9, 4.2],
+    exitMultiple: 12, offerPremium: 0.20, costSynergies: 0.4, revenueSynergies: 0.5,
+    synergyDiscountRate: 0.08, buyerEPS: 2.03, proFormaEPS: 2.10,
+  },
+  jci: {
+    ebitda: 4.5, ebit: 3.0, depreciation: 1.5, capex: 1.0, changeInWorkingCapital: 0.3,
+    taxRate: 0.18, sharesOutstanding: 0.66, wacc: 0.09, terminalGrowthRate: 0.02,
+    costOfEquity: 0.10, costOfDebt: 0.04, projectedFCF: [1.5, 1.8, 2.0, 2.3, 2.5],
+    exitMultiple: 10, offerPremium: 0.22, costSynergies: 0.3, revenueSynergies: 0.4,
+    synergyDiscountRate: 0.09, buyerEPS: 3.03, proFormaEPS: 3.12,
+  },
+  flr: {
+    ebitda: 0.6, ebit: 0.4, depreciation: 0.2, capex: 0.1, changeInWorkingCapital: 0.05,
+    taxRate: 0.22, sharesOutstanding: 0.17, wacc: 0.10, terminalGrowthRate: 0.02,
+    costOfEquity: 0.115, costOfDebt: 0.05, projectedFCF: [0.2, 0.28, 0.35, 0.42, 0.48],
+    exitMultiple: 8, offerPremium: 0.25, costSynergies: 0.05, revenueSynergies: 0.08,
+    synergyDiscountRate: 0.10, buyerEPS: 1.76, proFormaEPS: 1.85,
+  },
+  j: {
+    ebitda: 1.5, ebit: 1.1, depreciation: 0.4, capex: 0.2, changeInWorkingCapital: 0.1,
+    taxRate: 0.22, sharesOutstanding: 0.126, wacc: 0.09, terminalGrowthRate: 0.02,
+    costOfEquity: 0.10, costOfDebt: 0.04, projectedFCF: [0.65, 0.75, 0.85, 0.95, 1.05],
+    exitMultiple: 12, offerPremium: 0.22, costSynergies: 0.1, revenueSynergies: 0.15,
+    synergyDiscountRate: 0.09, buyerEPS: 7.14, proFormaEPS: 7.35,
+  },
+  acm: {
+    ebitda: 1.0, ebit: 0.7, depreciation: 0.3, capex: 0.15, changeInWorkingCapital: 0.08,
+    taxRate: 0.22, sharesOutstanding: 0.133, wacc: 0.09, terminalGrowthRate: 0.02,
+    costOfEquity: 0.10, costOfDebt: 0.04, projectedFCF: [0.4, 0.48, 0.55, 0.62, 0.7],
+    exitMultiple: 10, offerPremium: 0.22, costSynergies: 0.08, revenueSynergies: 0.1,
+    synergyDiscountRate: 0.09, buyerEPS: 4.51, proFormaEPS: 4.65,
+  },
+  eqix: {
+    ebitda: 4.0, ebit: 2.0, depreciation: 2.0, capex: 2.8, changeInWorkingCapital: 0.2,
+    taxRate: 0.05, sharesOutstanding: 0.089, wacc: 0.07, terminalGrowthRate: 0.03,
+    costOfEquity: 0.08, costOfDebt: 0.035, projectedFCF: [0.8, 1.0, 1.2, 1.4, 1.6],
+    exitMultiple: 25, offerPremium: 0.18, costSynergies: 0.2, revenueSynergies: 0.5,
+    synergyDiscountRate: 0.07, buyerEPS: 13.48, proFormaEPS: 13.85,
+  },
+  dlr: {
+    ebitda: 2.8, ebit: 1.2, depreciation: 1.6, capex: 2.2, changeInWorkingCapital: 0.15,
+    taxRate: 0.05, sharesOutstanding: 0.30, wacc: 0.07, terminalGrowthRate: 0.03,
+    costOfEquity: 0.08, costOfDebt: 0.035, projectedFCF: [0.4, 0.55, 0.7, 0.85, 1.0],
+    exitMultiple: 22, offerPremium: 0.18, costSynergies: 0.15, revenueSynergies: 0.3,
+    synergyDiscountRate: 0.07, buyerEPS: 1.67, proFormaEPS: 1.75,
+  },
+  irm: {
+    ebitda: 2.2, ebit: 0.8, depreciation: 1.4, capex: 1.5, changeInWorkingCapital: 0.1,
+    taxRate: 0.05, sharesOutstanding: 0.29, wacc: 0.075, terminalGrowthRate: 0.025,
+    costOfEquity: 0.085, costOfDebt: 0.045, projectedFCF: [0.3, 0.4, 0.55, 0.7, 0.85],
+    exitMultiple: 14, offerPremium: 0.20, costSynergies: 0.1, revenueSynergies: 0.2,
+    synergyDiscountRate: 0.075, buyerEPS: 1.38, proFormaEPS: 1.45,
+  },
+  nee: {
+    ebitda: 12.0, ebit: 7.0, depreciation: 5.0, capex: 8.0, changeInWorkingCapital: 0.5,
+    taxRate: 0.08, sharesOutstanding: 1.98, wacc: 0.065, terminalGrowthRate: 0.025,
+    costOfEquity: 0.075, costOfDebt: 0.035, projectedFCF: [2.5, 3.0, 3.5, 4.0, 4.5],
+    exitMultiple: 14, offerPremium: 0.18, costSynergies: 0.5, revenueSynergies: 1.0,
+    synergyDiscountRate: 0.07, buyerEPS: 2.63, proFormaEPS: 2.72,
+  },
+  ceg: {
+    ebitda: 5.5, ebit: 3.8, depreciation: 1.7, capex: 2.0, changeInWorkingCapital: 0.3,
+    taxRate: 0.10, sharesOutstanding: 0.32, wacc: 0.075, terminalGrowthRate: 0.025,
+    costOfEquity: 0.085, costOfDebt: 0.04, projectedFCF: [2.0, 2.5, 3.0, 3.5, 4.0],
+    exitMultiple: 12, offerPremium: 0.22, costSynergies: 0.3, revenueSynergies: 0.5,
+    synergyDiscountRate: 0.08, buyerEPS: 8.75, proFormaEPS: 9.05,
+  },
+  duk: {
+    ebitda: 12.5, ebit: 6.5, depreciation: 6.0, capex: 7.5, changeInWorkingCapital: 0.3,
+    taxRate: 0.15, sharesOutstanding: 0.77, wacc: 0.06, terminalGrowthRate: 0.02,
+    costOfEquity: 0.07, costOfDebt: 0.035, projectedFCF: [2.0, 2.3, 2.6, 2.9, 3.2],
+    exitMultiple: 10, offerPremium: 0.15, costSynergies: 0.5, revenueSynergies: 0.4,
+    synergyDiscountRate: 0.065, buyerEPS: 5.19, proFormaEPS: 5.30,
+  },
+  so: {
+    ebitda: 11.0, ebit: 6.0, depreciation: 5.0, capex: 7.0, changeInWorkingCapital: 0.2,
+    taxRate: 0.15, sharesOutstanding: 1.08, wacc: 0.06, terminalGrowthRate: 0.02,
+    costOfEquity: 0.07, costOfDebt: 0.035, projectedFCF: [2.0, 2.3, 2.5, 2.8, 3.0],
+    exitMultiple: 10, offerPremium: 0.15, costSynergies: 0.4, revenueSynergies: 0.4,
+    synergyDiscountRate: 0.065, buyerEPS: 3.89, proFormaEPS: 3.98,
+  },
+  fcx: {
+    ebitda: 10.0, ebit: 7.5, depreciation: 2.5, capex: 4.0, changeInWorkingCapital: 0.5,
+    taxRate: 0.25, sharesOutstanding: 1.44, wacc: 0.10, terminalGrowthRate: 0.02,
+    costOfEquity: 0.115, costOfDebt: 0.04, projectedFCF: [3.5, 4.0, 4.5, 5.0, 5.5],
+    exitMultiple: 7, offerPremium: 0.25, costSynergies: 0.3, revenueSynergies: 0.5,
+    synergyDiscountRate: 0.10, buyerEPS: 3.13, proFormaEPS: 3.22,
+  },
+  bhp: {
+    ebitda: 28.0, ebit: 20.0, depreciation: 8.0, capex: 8.5, changeInWorkingCapital: 1.0,
+    taxRate: 0.30, sharesOutstanding: 2.57, wacc: 0.095, terminalGrowthRate: 0.02,
+    costOfEquity: 0.11, costOfDebt: 0.04, projectedFCF: [8.0, 8.5, 9.0, 9.5, 10.0],
+    exitMultiple: 6, offerPremium: 0.20, costSynergies: 1.0, revenueSynergies: 1.5,
+    synergyDiscountRate: 0.095, buyerEPS: 5.25, proFormaEPS: 5.40,
+  },
+  rio: {
+    ebitda: 25.0, ebit: 18.0, depreciation: 7.0, capex: 7.5, changeInWorkingCapital: 0.8,
+    taxRate: 0.28, sharesOutstanding: 1.68, wacc: 0.09, terminalGrowthRate: 0.02,
+    costOfEquity: 0.105, costOfDebt: 0.035, projectedFCF: [7.5, 8.0, 8.5, 9.0, 9.5],
+    exitMultiple: 6, offerPremium: 0.20, costSynergies: 0.8, revenueSynergies: 1.2,
+    synergyDiscountRate: 0.09, buyerEPS: 7.02, proFormaEPS: 7.18,
   },
 };
