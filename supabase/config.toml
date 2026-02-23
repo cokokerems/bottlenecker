@@ -1,1 +1,4 @@
 project_id = "aecbfqmoqkvzaddzmivy"
+
+[functions.fmp-proxy]
+verify_jwt = false
