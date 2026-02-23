@@ -23,6 +23,13 @@ export interface Company {
   preferredStock: number;
   minorityInterest: number;
   cashAndEquivalents: number;
+  competitivePosition: {
+    position: "monopoly" | "duopoly" | "market-leader" | "strong-challenger" | "niche-specialist" | "emerging-contender";
+    marketSharePercent: number;
+    competitors: string[];
+    moat: string;
+    trend: "strengthening" | "stable" | "weakening";
+  };
 }
 
 export const categoryLabels: Record<CompanyCategory, string> = {
@@ -62,6 +69,7 @@ export const companies: Company[] = [
     customers: ["amzn", "googl", "msft", "orcl", "smci"],
     riskScore: 15, dependencyCount: 5,
     totalDebt: 11.2, preferredStock: 0, minorityInterest: 0, cashAndEquivalents: 31.4,
+    competitivePosition: { position: "market-leader", marketSharePercent: 80, competitors: ["amd", "intc", "avgo"], moat: "Dominant AI accelerator platform with CUDA ecosystem lock-in", trend: "strengthening" },
   },
   {
     id: "amd", name: "AMD", ticker: "AMD", category: "chip-makers",
@@ -73,6 +81,7 @@ export const companies: Company[] = [
     customers: ["amzn", "googl", "msft"],
     riskScore: 25, dependencyCount: 3,
     totalDebt: 2.3, preferredStock: 0, minorityInterest: 0, cashAndEquivalents: 5.8,
+    competitivePosition: { position: "strong-challenger", marketSharePercent: 20, competitors: ["nvda", "intc"], moat: "Rapidly gaining data center GPU share with competitive MI-series accelerators", trend: "strengthening" },
   },
   {
     id: "intc", name: "Intel", ticker: "INTC", category: "chip-makers",
@@ -84,6 +93,7 @@ export const companies: Company[] = [
     customers: ["msft", "amzn", "googl"],
     riskScore: 65, dependencyCount: 3,
     totalDebt: 48.2, preferredStock: 0, minorityInterest: 0, cashAndEquivalents: 24.1,
+    competitivePosition: { position: "strong-challenger", marketSharePercent: 12, competitors: ["nvda", "amd", "avgo"], moat: "Vertically integrated fab + design, but losing process node leadership", trend: "weakening" },
   },
   {
     id: "avgo", name: "Broadcom", ticker: "AVGO", category: "chip-makers",
@@ -95,6 +105,7 @@ export const companies: Company[] = [
     customers: ["amzn", "googl", "msft", "orcl"],
     riskScore: 20, dependencyCount: 4,
     totalDebt: 74.5, preferredStock: 0, minorityInterest: 0.8, cashAndEquivalents: 9.8,
+    competitivePosition: { position: "market-leader", marketSharePercent: 35, competitors: ["nvda", "qcom"], moat: "Dominant custom ASIC provider for hyperscalers plus VMware software moat", trend: "strengthening" },
   },
   {
     id: "qcom", name: "Qualcomm", ticker: "QCOM", category: "chip-makers",
@@ -106,6 +117,7 @@ export const companies: Company[] = [
     customers: [],
     riskScore: 30, dependencyCount: 0,
     totalDebt: 16.4, preferredStock: 0, minorityInterest: 0, cashAndEquivalents: 13.3,
+    competitivePosition: { position: "market-leader", marketSharePercent: 75, competitors: ["avgo"], moat: "Near-monopoly in mobile SoCs with essential 5G patent portfolio", trend: "stable" },
   },
   // Equipment & Materials
   {
@@ -118,6 +130,7 @@ export const companies: Company[] = [
     customers: ["tsmc", "intc", "nvda", "amd", "avgo", "qcom"],
     riskScore: 10, dependencyCount: 6,
     totalDebt: 5.1, preferredStock: 0, minorityInterest: 0, cashAndEquivalents: 4.9,
+    competitivePosition: { position: "monopoly", marketSharePercent: 100, competitors: [], moat: "Sole EUV lithography provider globally — no viable alternative exists", trend: "stable" },
   },
   {
     id: "tsmc", name: "TSMC", ticker: "TSM", category: "equipment-materials",
@@ -129,6 +142,7 @@ export const companies: Company[] = [
     customers: ["nvda", "amd", "avgo", "qcom"],
     riskScore: 8, dependencyCount: 4,
     totalDebt: 28.3, preferredStock: 0, minorityInterest: 0, cashAndEquivalents: 52.7,
+    competitivePosition: { position: "monopoly", marketSharePercent: 90, competitors: ["intc"], moat: "Dominant advanced-node foundry — sole manufacturer of leading-edge chips", trend: "strengthening" },
   },
   {
     id: "amat", name: "Applied Materials", ticker: "AMAT", category: "equipment-materials",
@@ -140,6 +154,7 @@ export const companies: Company[] = [
     customers: ["tsmc", "intc", "nvda", "amd"],
     riskScore: 15, dependencyCount: 4,
     totalDebt: 5.5, preferredStock: 0, minorityInterest: 0, cashAndEquivalents: 7.5,
+    competitivePosition: { position: "duopoly", marketSharePercent: 45, competitors: ["lrcx"], moat: "Broadest semiconductor equipment portfolio across deposition, etch, and inspection", trend: "stable" },
   },
   {
     id: "lrcx", name: "Lam Research", ticker: "LRCX", category: "equipment-materials",
@@ -151,6 +166,7 @@ export const companies: Company[] = [
     customers: ["tsmc", "intc", "nvda"],
     riskScore: 18, dependencyCount: 3,
     totalDebt: 5.0, preferredStock: 0, minorityInterest: 0, cashAndEquivalents: 5.6,
+    competitivePosition: { position: "duopoly", marketSharePercent: 40, competitors: ["amat"], moat: "Leading etch equipment provider critical to advanced chip manufacturing", trend: "stable" },
   },
   // Cloud / Data Centers
   {
@@ -163,6 +179,7 @@ export const companies: Company[] = [
     customers: [],
     riskScore: 12, dependencyCount: 0,
     totalDebt: 67.2, preferredStock: 0, minorityInterest: 0, cashAndEquivalents: 73.4,
+    competitivePosition: { position: "market-leader", marketSharePercent: 31, competitors: ["msft", "googl", "orcl"], moat: "Largest cloud provider with deepest enterprise adoption and global infrastructure", trend: "stable" },
   },
   {
     id: "googl", name: "Alphabet (Google)", ticker: "GOOGL", category: "cloud-datacenters",
@@ -174,6 +191,7 @@ export const companies: Company[] = [
     customers: [],
     riskScore: 10, dependencyCount: 0,
     totalDebt: 28.5, preferredStock: 0, minorityInterest: 0, cashAndEquivalents: 110.9,
+    competitivePosition: { position: "strong-challenger", marketSharePercent: 12, competitors: ["amzn", "msft", "orcl"], moat: "Custom TPU silicon and AI-native cloud with deep integration into Google ecosystem", trend: "strengthening" },
   },
   {
     id: "msft", name: "Microsoft", ticker: "MSFT", category: "cloud-datacenters",
@@ -185,6 +203,7 @@ export const companies: Company[] = [
     customers: [],
     riskScore: 8, dependencyCount: 0,
     totalDebt: 47.0, preferredStock: 0, minorityInterest: 0, cashAndEquivalents: 75.5,
+    competitivePosition: { position: "strong-challenger", marketSharePercent: 25, competitors: ["amzn", "googl", "orcl"], moat: "Azure + OpenAI partnership creating strongest enterprise AI cloud position", trend: "strengthening" },
   },
   {
     id: "orcl", name: "Oracle", ticker: "ORCL", category: "cloud-datacenters",
@@ -196,6 +215,7 @@ export const companies: Company[] = [
     customers: [],
     riskScore: 22, dependencyCount: 0,
     totalDebt: 88.4, preferredStock: 0, minorityInterest: 0, cashAndEquivalents: 12.9,
+    competitivePosition: { position: "emerging-contender", marketSharePercent: 5, competitors: ["amzn", "googl", "msft"], moat: "Aggressive AI infrastructure buildout with multi-cloud database installed base", trend: "strengthening" },
   },
   // Networking & Cooling
   {
@@ -208,6 +228,7 @@ export const companies: Company[] = [
     customers: ["amzn", "googl", "msft", "orcl"],
     riskScore: 20, dependencyCount: 4,
     totalDebt: 0, preferredStock: 0, minorityInterest: 0, cashAndEquivalents: 3.4,
+    competitivePosition: { position: "market-leader", marketSharePercent: 60, competitors: ["vrt"], moat: "Dominant high-speed data center switch provider with software-defined networking edge", trend: "strengthening" },
   },
   {
     id: "vrt", name: "Vertiv", ticker: "VRT", category: "networking-cooling",
@@ -219,6 +240,7 @@ export const companies: Company[] = [
     customers: ["amzn", "googl", "msft", "orcl"],
     riskScore: 25, dependencyCount: 4,
     totalDebt: 3.8, preferredStock: 0, minorityInterest: 0, cashAndEquivalents: 0.5,
+    competitivePosition: { position: "strong-challenger", marketSharePercent: 18, competitors: ["anet", "crst"], moat: "Leading data center thermal management and power solutions provider", trend: "strengthening" },
   },
   {
     id: "crst", name: "Celestica", ticker: "CLS", category: "networking-cooling",
@@ -230,6 +252,7 @@ export const companies: Company[] = [
     customers: ["amzn"],
     riskScore: 40, dependencyCount: 1,
     totalDebt: 1.1, preferredStock: 0, minorityInterest: 0, cashAndEquivalents: 0.4,
+    competitivePosition: { position: "niche-specialist", marketSharePercent: 5, competitors: ["smci"], moat: "Specialized EMS provider with strong data center hardware assembly capabilities", trend: "stable" },
   },
   {
     id: "smci", name: "Super Micro", ticker: "SMCI", category: "networking-cooling",
@@ -241,6 +264,7 @@ export const companies: Company[] = [
     customers: ["amzn", "msft"],
     riskScore: 72, dependencyCount: 2,
     totalDebt: 2.0, preferredStock: 0, minorityInterest: 0, cashAndEquivalents: 1.4,
+    competitivePosition: { position: "niche-specialist", marketSharePercent: 8, competitors: ["crst"], moat: "AI-optimized liquid-cooled server racks with rapid deployment capability", trend: "weakening" },
   },
 ];
 

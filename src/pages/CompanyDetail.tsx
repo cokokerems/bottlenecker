@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowUpRight, ArrowDownRight, ExternalLink } from "lucide-react";
 import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
 import ValuationBreakdown from "@/components/ValuationBreakdown";
+import CompetitivePosition from "@/components/CompetitivePosition";
 
 export default function CompanyDetail() {
   const { id } = useParams<{ id: string }>();
@@ -140,6 +141,9 @@ export default function CompanyDetail() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Competitive Position */}
+      <CompetitivePosition company={company} />
 
       {/* M&A Valuation Analysis */}
       <ValuationBreakdown company={company} />
