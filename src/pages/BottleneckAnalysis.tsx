@@ -1,4 +1,4 @@
-import { companies, getCompanyById, categoryLabels } from "@/data/companies";
+import { companies, getCompanyById, categoryLabels, getPrimaryCategory } from "@/data/companies";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertTriangle, Link as LinkIcon } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -115,7 +115,7 @@ export default function BottleneckAnalysis() {
                   <span className="text-xs font-mono text-muted-foreground w-6">#{i + 1}</span>
                   <div className="flex-1">
                     <span className="text-sm font-medium">{b.company.name}</span>
-                    <span className="text-xs text-muted-foreground ml-2">{categoryLabels[b.company.category]}</span>
+                    <span className="text-xs text-muted-foreground ml-2">{categoryLabels[getPrimaryCategory(b.company)]}</span>
                   </div>
                   <div className="flex items-center gap-6 text-xs">
                     <div className="text-center">

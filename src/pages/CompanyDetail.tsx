@@ -1,5 +1,5 @@
 import { useParams, Link } from "react-router-dom";
-import { getCompanyById, companies, categoryLabels, categoryColors } from "@/data/companies";
+import { getCompanyById, companies, categoryLabels, categoryColors, getPrimaryCategory } from "@/data/companies";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowUpRight, ArrowDownRight, ExternalLink } from "lucide-react";
@@ -26,6 +26,7 @@ export default function CompanyDetail() {
 
   const supplierCompanies = company.suppliers.map((sid) => companies.find((c) => c.id === sid)).filter(Boolean);
   const customerCompanies = company.customers.map((cid) => companies.find((c) => c.id === cid)).filter(Boolean);
+  const primaryCat = getPrimaryCategory(company);
 
   return (
     <div className="space-y-6">
@@ -34,12 +35,14 @@ export default function CompanyDetail() {
           <Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button>
         </Link>
         <div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-2xl font-bold">{company.name}</h1>
             <span className="font-mono text-sm text-muted-foreground">{company.ticker}</span>
-            <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: categoryColors[company.category] + "20", color: categoryColors[company.category] }}>
-              {categoryLabels[company.category]}
-            </span>
+            {company.categories.map((cat) => (
+              <span key={cat} className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: categoryColors[cat] + "20", color: categoryColors[cat] }}>
+                {categoryLabels[cat]}
+              </span>
+            ))}
           </div>
           <p className="text-sm text-muted-foreground">{company.description}</p>
         </div>
