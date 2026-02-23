@@ -7,6 +7,7 @@ const corsHeaders = {
 };
 
 const FMP_BASE = "https://financialmodelingprep.com/stable";
+const CONCURRENCY = 3; // Max parallel requests to avoid rate limits
 
 const cache = new Map<string, { data: unknown; ts: number }>();
 const CACHE_TTL_MS = 5 * 60 * 1000;
@@ -32,11 +33,29 @@ async function fmpFetch(path: string, params: Record<string, string>, apiKey: st
   const res = await fetch(url);
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(`FMP API error [${res.status}]: ${body}`);
+    console.error(`FMP ${res.status} for ${path} symbol=${params.symbol}: ${body.slice(0, 200)}`);
+    return null;
   }
   const data = await res.json();
   setCache(cacheKey, data);
   return data;
+}
+
+// Run tasks with limited concurrency
+async function runWithConcurrency<T>(tasks: (() => Promise<T>)[], limit: number): Promise<T[]> {
+  const results: T[] = [];
+  let idx = 0;
+  
+  async function worker() {
+    while (idx < tasks.length) {
+      const i = idx++;
+      results[i] = await tasks[i]();
+    }
+  }
+
+  const workers = Array.from({ length: Math.min(limit, tasks.length) }, () => worker());
+  await Promise.all(workers);
+  return results;
 }
 
 serve(async (req) => {
@@ -62,48 +81,39 @@ serve(async (req) => {
       });
     }
 
-    const requestedEndpoints = endpoints || ["quote", "profile", "income-statement", "balance-sheet-statement", "key-metrics"];
-
+    const requestedEndpoints = endpoints || ["quote"];
     const results: Record<string, Record<string, unknown>> = {};
-    const fetches: Promise<void>[] = [];
+
+    // Build all tasks — one per ticker per endpoint
+    const tasks: (() => Promise<void>)[] = [];
 
     for (const endpoint of requestedEndpoints) {
-      // Stable API: use symbol query param, supports comma-separated for quote/profile
-      if (endpoint === "quote" || endpoint === "profile") {
-        const symbolList = tickers.join(",");
-        fetches.push(
-          fmpFetch(`/${endpoint}`, { symbol: symbolList }, apiKey).then((data) => {
+      for (const ticker of tickers) {
+        tasks.push(async () => {
+          const params: Record<string, string> = { symbol: ticker };
+          let path = `/${endpoint}`;
+          
+          if (endpoint === "key-metrics") {
+            params.period = "ttm";
+          } else if (endpoint === "income-statement" || endpoint === "balance-sheet-statement" || endpoint === "cash-flow-statement") {
+            params.limit = "1";
+          }
+
+          const data = await fmpFetch(path, params, apiKey);
+          if (data) {
+            if (!results[ticker]) results[ticker] = {};
             if (Array.isArray(data)) {
-              for (const item of data) {
-                const symbol = item.symbol;
-                if (!results[symbol]) results[symbol] = {};
-                results[symbol][endpoint] = item;
-              }
+              // quote returns array with one item, financial statements too
+              results[ticker][endpoint] = data.length === 1 ? data[0] : data;
+            } else {
+              results[ticker][endpoint] = data;
             }
-          })
-        );
-      } else if (endpoint === "income-statement" || endpoint === "balance-sheet-statement" || endpoint === "cash-flow-statement") {
-        for (const ticker of tickers) {
-          fetches.push(
-            fmpFetch(`/${endpoint}`, { symbol: ticker, limit: "1" }, apiKey).then((data) => {
-              if (!results[ticker]) results[ticker] = {};
-              results[ticker][endpoint] = Array.isArray(data) ? data[0] : data;
-            })
-          );
-        }
-      } else if (endpoint === "key-metrics") {
-        for (const ticker of tickers) {
-          fetches.push(
-            fmpFetch(`/key-metrics`, { symbol: ticker, period: "ttm" }, apiKey).then((data) => {
-              if (!results[ticker]) results[ticker] = {};
-              results[ticker]["key-metrics"] = Array.isArray(data) ? data[0] : data;
-            })
-          );
-        }
+          }
+        });
       }
     }
 
-    await Promise.all(fetches);
+    await runWithConcurrency(tasks, CONCURRENCY);
 
     return new Response(JSON.stringify(results), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
