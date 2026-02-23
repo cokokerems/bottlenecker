@@ -2,16 +2,40 @@ import { useParams, Link } from "react-router-dom";
 import { getCompanyById, companies, categoryLabels, categoryColors, getPrimaryCategory } from "@/data/companies";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowUpRight, ArrowDownRight, ExternalLink } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, ArrowDownRight, ExternalLink, Wifi, WifiOff } from "lucide-react";
 import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
 import ValuationBreakdown from "@/components/ValuationBreakdown";
 import CompetitivePosition from "@/components/CompetitivePosition";
+import { useFMPCompanyData } from "@/hooks/useFMPData";
+import { useMemo } from "react";
 
 export default function CompanyDetail() {
   const { id } = useParams<{ id: string }>();
   const company = getCompanyById(id || "");
 
-  if (!company) {
+  const { data: liveData, isLoading, isError } = useFMPCompanyData(company?.ticker || "");
+
+  // Merge live data with mock fallbacks
+  const merged = useMemo(() => {
+    if (!company) return null;
+    const q = liveData?.quote;
+    const inc = liveData?.["income-statement"];
+    const bs = liveData?.["balance-sheet-statement"];
+
+    return {
+      currentPrice: q?.price ?? company.currentPrice,
+      priceChange: q?.changePercentage ?? company.priceChange,
+      marketCap: q?.marketCap ? q.marketCap / 1e9 : company.marketCap, // API returns raw, we use billions
+      revenue: inc?.revenue ? inc.revenue / 1e9 : company.revenue,
+      earnings: inc?.netIncome ? inc.netIncome / 1e9 : company.earnings,
+      grossMargin: inc?.grossProfitRatio ? inc.grossProfitRatio * 100 : company.grossMargin,
+      totalDebt: bs?.totalDebt ? bs.totalDebt / 1e9 : company.totalDebt,
+      cashAndEquivalents: bs?.cashAndCashEquivalents ? bs.cashAndCashEquivalents / 1e9 : company.cashAndEquivalents,
+      minorityInterest: bs?.minorityInterest ? bs.minorityInterest / 1e9 : company.minorityInterest,
+    };
+  }, [company, liveData]);
+
+  if (!company || !merged) {
     return (
       <div className="flex items-center justify-center h-64">
         <p className="text-muted-foreground">Company not found</p>
@@ -28,13 +52,27 @@ export default function CompanyDetail() {
   const customerCompanies = company.customers.map((cid) => companies.find((c) => c.id === cid)).filter(Boolean);
   const primaryCat = getPrimaryCategory(company);
 
+  // Build a merged company object for child components that expect Company type
+  const mergedCompany = {
+    ...company,
+    currentPrice: merged.currentPrice,
+    priceChange: merged.priceChange,
+    marketCap: merged.marketCap,
+    revenue: merged.revenue,
+    earnings: merged.earnings,
+    grossMargin: merged.grossMargin,
+    totalDebt: merged.totalDebt,
+    cashAndEquivalents: merged.cashAndEquivalents,
+    minorityInterest: merged.minorityInterest,
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Link to="/">
           <Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button>
         </Link>
-        <div>
+        <div className="flex-1">
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-2xl font-bold">{company.name}</h1>
             <span className="font-mono text-sm text-muted-foreground">{company.ticker}</span>
@@ -46,6 +84,15 @@ export default function CompanyDetail() {
           </div>
           <p className="text-sm text-muted-foreground">{company.description}</p>
         </div>
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          {isLoading ? (
+            <span className="animate-pulse">Loading…</span>
+          ) : isError ? (
+            <><WifiOff className="h-3 w-3 text-destructive" /> <span>Mock</span></>
+          ) : (
+            <><Wifi className="h-3 w-3 text-success" /> <span>Live</span></>
+          )}
+        </div>
       </div>
 
       {/* Price and key metrics */}
@@ -53,17 +100,17 @@ export default function CompanyDetail() {
         <Card className="col-span-1 border-border/50">
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Price</p>
-            <p className="text-2xl font-mono font-bold">${company.currentPrice.toFixed(2)}</p>
-            <span className={`flex items-center gap-0.5 text-sm font-mono ${company.priceChange >= 0 ? "text-success" : "text-destructive"}`}>
-              {company.priceChange >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-              {Math.abs(company.priceChange)}%
+            <p className="text-2xl font-mono font-bold">${merged.currentPrice.toFixed(2)}</p>
+            <span className={`flex items-center gap-0.5 text-sm font-mono ${merged.priceChange >= 0 ? "text-success" : "text-destructive"}`}>
+              {merged.priceChange >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+              {Math.abs(merged.priceChange).toFixed(2)}%
             </span>
           </CardContent>
         </Card>
         {[
-          { label: "Revenue (TTM)", value: `$${company.revenue}B` },
-          { label: "Earnings (TTM)", value: `$${company.earnings}B` },
-          { label: "Gross Margin", value: `${company.grossMargin}%` },
+          { label: "Revenue (TTM)", value: `$${merged.revenue.toFixed(1)}B` },
+          { label: "Earnings (TTM)", value: `$${merged.earnings.toFixed(1)}B` },
+          { label: "Gross Margin", value: `${merged.grossMargin.toFixed(1)}%` },
         ].map((m) => (
           <Card key={m.label} className="border-border/50">
             <CardContent className="p-4">
@@ -146,10 +193,10 @@ export default function CompanyDetail() {
       </div>
 
       {/* Competitive Position */}
-      <CompetitivePosition company={company} />
+      <CompetitivePosition company={mergedCompany} />
 
       {/* M&A Valuation Analysis */}
-      <ValuationBreakdown company={company} />
+      <ValuationBreakdown company={mergedCompany} />
 
       {/* Risk Score */}
       <Card className="border-border/50">

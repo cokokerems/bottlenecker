@@ -1,17 +1,41 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { sectorPerformance, companies, alerts as alertData } from "@/data/companies";
-import { TrendingUp, TrendingDown, AlertTriangle, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { TrendingUp, TrendingDown, AlertTriangle, ArrowUpRight, ArrowDownRight, Wifi, WifiOff } from "lucide-react";
 import { SparklineChart } from "@/components/SparklineChart";
 import { Link } from "react-router-dom";
+import { useFMPQuotes } from "@/hooks/useFMPData";
+import { useMemo } from "react";
 
 export default function DashboardHome() {
+  const allTickers = useMemo(() => companies.map((c) => c.ticker), []);
+  const { data: liveQuotes, isLoading, isError } = useFMPQuotes(allTickers);
+
   const topMovers = [...companies].sort((a, b) => Math.abs(b.priceChange) - Math.abs(a.priceChange)).slice(0, 5);
+
+  function getLivePrice(ticker: string, fallback: number): number {
+    return liveQuotes?.[ticker]?.price ?? fallback;
+  }
+
+  function getLiveChange(ticker: string, fallback: number): number {
+    return liveQuotes?.[ticker]?.changePercentage ?? fallback;
+  }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Market Overview</h1>
-        <p className="text-sm text-muted-foreground">AI infrastructure supply chain at a glance</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Market Overview</h1>
+          <p className="text-sm text-muted-foreground">AI infrastructure supply chain at a glance</p>
+        </div>
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          {isLoading ? (
+            <span className="animate-pulse">Loading live data…</span>
+          ) : isError ? (
+            <><WifiOff className="h-3 w-3 text-destructive" /> <span>Using mock data</span></>
+          ) : (
+            <><Wifi className="h-3 w-3 text-success" /> <span>Live</span></>
+          )}
+        </div>
       </div>
 
       {/* Sector Performance */}
@@ -44,28 +68,34 @@ export default function DashboardHome() {
             </CardHeader>
             <CardContent className="p-0">
               <div className="divide-y divide-border/50">
-                {companies.map((company) => (
-                  <Link
-                    key={company.id}
-                    to={`/company/${company.id}`}
-                    className="flex items-center gap-4 px-6 py-3 hover:bg-accent/50 transition-colors"
-                  >
-                    <div className="w-[120px]">
-                      <p className="text-sm font-semibold">{company.ticker}</p>
-                      <p className="text-xs text-muted-foreground truncate">{company.name}</p>
-                    </div>
-                    <div className="w-[100px]">
-                      <SparklineChart data={company.priceHistory} positive={company.priceChange >= 0} />
-                    </div>
-                    <div className="ml-auto text-right flex items-center gap-3">
-                      <span className="font-mono text-sm">${company.currentPrice.toFixed(2)}</span>
-                      <span className={`flex items-center gap-0.5 text-xs font-mono font-medium ${company.priceChange >= 0 ? "text-success" : "text-destructive"}`}>
-                        {company.priceChange >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-                        {Math.abs(company.priceChange)}%
-                      </span>
-                    </div>
-                  </Link>
-                ))}
+                {companies.map((company) => {
+                  const price = getLivePrice(company.ticker, company.currentPrice);
+                  const change = getLiveChange(company.ticker, company.priceChange);
+                  const isPositive = change >= 0;
+
+                  return (
+                    <Link
+                      key={company.id}
+                      to={`/company/${company.id}`}
+                      className="flex items-center gap-4 px-6 py-3 hover:bg-accent/50 transition-colors"
+                    >
+                      <div className="w-[120px]">
+                        <p className="text-sm font-semibold">{company.ticker}</p>
+                        <p className="text-xs text-muted-foreground truncate">{company.name}</p>
+                      </div>
+                      <div className="w-[100px]">
+                        <SparklineChart data={company.priceHistory} positive={isPositive} />
+                      </div>
+                      <div className="ml-auto text-right flex items-center gap-3">
+                        <span className="font-mono text-sm">${price.toFixed(2)}</span>
+                        <span className={`flex items-center gap-0.5 text-xs font-mono font-medium ${isPositive ? "text-success" : "text-destructive"}`}>
+                          {isPositive ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                          {Math.abs(change).toFixed(2)}%
+                        </span>
+                      </div>
+                    </Link>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
