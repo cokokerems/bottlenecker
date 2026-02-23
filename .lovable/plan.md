@@ -1,45 +1,59 @@
 
-# AI Infrastructure Supply Chain Intelligence Dashboard
 
-## Overview
-A dark, sleek dashboard that tracks AI infrastructure companies across the full supply chain — from chip equipment makers to cloud providers — showing stock prices, financials, and an interactive supply chain graph that reveals bottlenecks and risks.
+# Competitive Position Section for Company Profiles
 
-## Pages & Features
+## What We're Adding
+A new "Competitive Position" section on each company's profile page that shows where the company stands within its sector -- whether it's a monopoly, duopoly player, market leader, challenger, niche specialist, or emerging contender.
 
-### 1. Dashboard Home
-- **Market overview cards** showing key indices and sector performance at a glance
-- **Watchlist** of tracked companies with live stock prices, daily change, and mini sparkline charts
-- **Alerts panel** highlighting companies with earnings misses, sharp price drops, or supply chain risk flags
+## Data Model Changes (`src/data/companies.ts`)
 
-### 2. Company Detail View
-- Click any company to see detailed stock chart, key financial metrics (revenue, earnings, margins), and recent performance
-- **Supply chain context**: which companies it supplies to and depends on
-- Risk indicator showing how critical this company is to the overall AI supply chain
+Add a new `competitivePosition` object to the `Company` interface with:
 
-### 3. Interactive Supply Chain Graph
-- **Network visualization** of all tracked companies as nodes, with edges showing supplier/customer relationships
-- Companies grouped by category: Chip Makers, Equipment & Materials, Cloud/Data Centers, Networking & Cooling
-- **Node sizing** based on how many companies depend on them (concentration risk)
-- **Color-coded risk**: nodes turn red/amber when a company's stock drops significantly or earnings disappoint, visually propagating risk downstream
-- Click any node to see its connections and drill into detail
+- **position**: The label (e.g., "Monopoly", "Duopoly", "Market Leader", "Strong Challenger", "Niche Specialist", "Emerging Contender")
+- **marketSharePercent**: Estimated market share within their sub-segment
+- **competitors**: Array of competitor IDs within the tracked universe
+- **moat**: Short description of competitive advantage (e.g., "Sole EUV lithography provider globally")
+- **trend**: "strengthening" | "stable" | "weakening" -- recent trajectory
 
-### 4. Bottleneck Analysis
-- **Concentration risk view**: ranked list of companies that are single points of failure (e.g., TSMC, ASML)
-- **Performance alerts**: flags when a critical supplier shows financial weakness — with downstream impact list
-- Combined risk score for each company factoring in both dependency concentration and financial health
+Mock data for all 18 companies, for example:
+- ASML: Monopoly, ~100% EUV market share, no competitors
+- NVIDIA: Market Leader, ~80% AI accelerator share, strengthening
+- TSMC: Monopoly, ~90% advanced node foundry share
+- AMD: Strong Challenger, ~20% data center GPU share, strengthening
+- Intel: Legacy Leader, declining share, weakening
+- Celestica: Niche Specialist, ~5% share, stable
 
-## Companies Covered (MVP)
-- **Chip makers**: NVIDIA, AMD, Intel, Broadcom, Qualcomm
-- **Equipment & materials**: ASML, TSMC, Applied Materials, Lam Research
-- **Cloud/Data centers**: AWS (Amazon), Google (Alphabet), Microsoft, Oracle
-- **Networking & cooling**: Arista Networks, Vertiv, Celestica, Super Micro Computer
+## New Component (`src/components/CompetitivePosition.tsx`)
 
-## Data Approach (MVP)
-- Start with realistic **mock/sample data** for stock prices, earnings, and supply chain relationships
-- Pre-built supply chain relationship map based on known public partnerships
-- Architecture ready to swap in a real financial API (Alpha Vantage, Polygon, etc.) later
+A card displayed on the CompanyDetail page with:
 
-## Design
-- **Dark theme** with accent colors (e.g., electric blue, amber for warnings, red for risk)
-- Dense but readable data layout
-- Smooth transitions and hover interactions on the supply chain graph
+1. **Position badge** -- color-coded label (e.g., gold for Monopoly, blue for Leader, amber for Challenger, gray for Niche)
+2. **Market share bar** -- a horizontal progress bar showing estimated share within their sub-segment
+3. **Competitive moat** -- one-liner explaining why they hold their position
+4. **Trend indicator** -- arrow icon showing if position is strengthening, stable, or weakening
+5. **Sector peers** -- small list of tracked competitors with their market share for comparison
+
+## CompanyDetail Page Update (`src/pages/CompanyDetail.tsx`)
+
+Insert the new `CompetitivePosition` component between the Supply Chain Context section and the Valuation Breakdown section.
+
+## Technical Details
+
+### Interface addition in `src/data/companies.ts`:
+```text
+competitivePosition: {
+  position: "monopoly" | "duopoly" | "market-leader" | "strong-challenger" | "niche-specialist" | "emerging-contender";
+  marketSharePercent: number;
+  competitors: string[];  // company IDs
+  moat: string;
+  trend: "strengthening" | "stable" | "weakening";
+}
+```
+
+### Files to create:
+- `src/components/CompetitivePosition.tsx` -- the display component
+
+### Files to modify:
+- `src/data/companies.ts` -- add `competitivePosition` field to interface and all 18 company records
+- `src/pages/CompanyDetail.tsx` -- import and render the new component
+
