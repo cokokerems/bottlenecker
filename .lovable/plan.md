@@ -1,59 +1,42 @@
 
 
-# Competitive Position Section for Company Profiles
+## Add Global Notes and Trade Log Tabs
 
-## What We're Adding
-A new "Competitive Position" section on each company's profile page that shows where the company stands within its sector -- whether it's a monopoly, duopoly player, market leader, challenger, niche specialist, or emerging contender.
+### Overview
+Add two new top-level pages accessible from the navigation bar: **Notes** and **Trade Log**. Both will persist data to localStorage (no authentication required).
 
-## Data Model Changes (`src/data/companies.ts`)
+### 1. Database Tables
+Since this is a personal tool without authentication, we'll use **localStorage** for persistence to keep things simple and avoid needing auth/RLS. If you want cloud persistence later, we can add that with authentication.
 
-Add a new `competitivePosition` object to the `Company` interface with:
+### 2. Navigation Update
+**File: `src/components/DashboardLayout.tsx`**
+- Add two new nav items: Notes (StickyNote icon) and Trade Log (Table icon)
 
-- **position**: The label (e.g., "Monopoly", "Duopoly", "Market Leader", "Strong Challenger", "Niche Specialist", "Emerging Contender")
-- **marketSharePercent**: Estimated market share within their sub-segment
-- **competitors**: Array of competitor IDs within the tracked universe
-- **moat**: Short description of competitive advantage (e.g., "Sole EUV lithography provider globally")
-- **trend**: "strengthening" | "stable" | "weakening" -- recent trajectory
+### 3. Notes Page
+**New file: `src/pages/Notes.tsx`**
+- A simple rich-text area where you can write and save notes
+- Auto-saves to localStorage
+- Timestamp showing last saved time
 
-Mock data for all 18 companies, for example:
-- ASML: Monopoly, ~100% EUV market share, no competitors
-- NVIDIA: Market Leader, ~80% AI accelerator share, strengthening
-- TSMC: Monopoly, ~90% advanced node foundry share
-- AMD: Strong Challenger, ~20% data center GPU share, strengthening
-- Intel: Legacy Leader, declining share, weakening
-- Celestica: Niche Specialist, ~5% share, stable
+### 4. Trade Log Page
+**New file: `src/pages/TradeLog.tsx`**
+- Editable spreadsheet-style table with columns: **Date, Symbol, Bought, Sold, P&L, Comments**
+- Add row button to insert new trades
+- Inline editing -- click a cell to edit
+- Delete row capability
+- Auto-calculated P&L (Sold - Bought) or manual entry
+- Summary row showing total P&L
+- Data persisted to localStorage
+- Date picker for the Date column
 
-## New Component (`src/components/CompetitivePosition.tsx`)
+### 5. Routing
+**File: `src/App.tsx`**
+- Add routes for `/notes` and `/trade-log`
 
-A card displayed on the CompanyDetail page with:
-
-1. **Position badge** -- color-coded label (e.g., gold for Monopoly, blue for Leader, amber for Challenger, gray for Niche)
-2. **Market share bar** -- a horizontal progress bar showing estimated share within their sub-segment
-3. **Competitive moat** -- one-liner explaining why they hold their position
-4. **Trend indicator** -- arrow icon showing if position is strengthening, stable, or weakening
-5. **Sector peers** -- small list of tracked competitors with their market share for comparison
-
-## CompanyDetail Page Update (`src/pages/CompanyDetail.tsx`)
-
-Insert the new `CompetitivePosition` component between the Supply Chain Context section and the Valuation Breakdown section.
-
-## Technical Details
-
-### Interface addition in `src/data/companies.ts`:
-```text
-competitivePosition: {
-  position: "monopoly" | "duopoly" | "market-leader" | "strong-challenger" | "niche-specialist" | "emerging-contender";
-  marketSharePercent: number;
-  competitors: string[];  // company IDs
-  moat: string;
-  trend: "strengthening" | "stable" | "weakening";
-}
-```
-
-### Files to create:
-- `src/components/CompetitivePosition.tsx` -- the display component
-
-### Files to modify:
-- `src/data/companies.ts` -- add `competitivePosition` field to interface and all 18 company records
-- `src/pages/CompanyDetail.tsx` -- import and render the new component
+### Technical Details
+- Trade log state managed with `useState` + `useEffect` for localStorage sync
+- Each trade row: `{ id, date, symbol, bought, sold, pnl, comments }`
+- P&L auto-calculates as `sold - bought` when both fields are filled
+- Table uses existing shadcn Table components for consistent styling
+- Notes use a `<Textarea>` with debounced auto-save
 
