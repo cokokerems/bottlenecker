@@ -6,55 +6,170 @@ export type ChatMessage = {
   content: string;
 };
 
-const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-research`;
-const STORAGE_KEY = "research-chat-messages";
+export type Conversation = {
+  id: string;
+  title: string;
+  messages: ChatMessage[];
+  createdAt: number;
+  updatedAt: number;
+};
 
-function loadMessages(): ChatMessage[] {
+const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-research`;
+const STORAGE_KEY = "research-conversations";
+
+function loadConversations(): Conversation[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    // Migrate old format (flat message array)
+    if (Array.isArray(parsed) && parsed.length > 0 && "role" in parsed[0]) {
+      const migrated: Conversation = {
+        id: crypto.randomUUID(),
+        title: getTitle(parsed as ChatMessage[]),
+        messages: parsed as ChatMessage[],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+      return migrated.messages.length > 0 ? [migrated] : [];
+    }
+    return parsed;
   } catch {
     return [];
   }
 }
 
+function saveConversations(convos: Conversation[]) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(convos));
+}
+
+function getTitle(messages: ChatMessage[]): string {
+  const first = messages.find((m) => m.role === "user");
+  if (!first) return "New Chat";
+  return first.content.slice(0, 50) + (first.content.length > 50 ? "…" : "");
+}
+
 export function useResearchChat() {
-  const [messages, setMessages] = useState<ChatMessage[]>(loadMessages);
+  const [conversations, setConversations] = useState<Conversation[]>(loadConversations);
+  const [activeId, setActiveId] = useState<string | null>(() => {
+    const convos = loadConversations();
+    return convos.length > 0 ? convos[0].id : null;
+  });
   const [isLoading, setIsLoading] = useState(false);
 
-  // Persist to localStorage on change
+  const activeConvo = conversations.find((c) => c.id === activeId) || null;
+  const messages = activeConvo?.messages || [];
+
+  // Persist
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
-  }, [messages]);
+    saveConversations(conversations);
+  }, [conversations]);
+
+  const newChat = useCallback(() => {
+    const id = crypto.randomUUID();
+    const convo: Conversation = {
+      id,
+      title: "New Chat",
+      messages: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    setConversations((prev) => [convo, ...prev]);
+    setActiveId(id);
+  }, []);
+
+  const switchChat = useCallback((id: string) => {
+    setActiveId(id);
+  }, []);
+
+  const deleteChat = useCallback(
+    (id: string) => {
+      setConversations((prev) => {
+        const next = prev.filter((c) => c.id !== id);
+        if (activeId === id) {
+          setActiveId(next.length > 0 ? next[0].id : null);
+        }
+        return next;
+      });
+    },
+    [activeId]
+  );
 
   const sendMessage = useCallback(
     async (input: string) => {
+      let currentActiveId = activeId;
+
+      // Auto-create conversation if none active
+      if (!currentActiveId) {
+        const id = crypto.randomUUID();
+        const convo: Conversation = {
+          id,
+          title: input.slice(0, 50) + (input.length > 50 ? "…" : ""),
+          messages: [],
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        };
+        setConversations((prev) => [convo, ...prev]);
+        setActiveId(id);
+        currentActiveId = id;
+      }
+
       const userMsg: ChatMessage = {
         id: crypto.randomUUID(),
         role: "user",
         content: input,
       };
-      setMessages((prev) => [...prev, userMsg]);
-      setIsLoading(true);
 
+      // Add user message
+      setConversations((prev) =>
+        prev.map((c) => {
+          if (c.id !== currentActiveId) return c;
+          const msgs = [...c.messages, userMsg];
+          return {
+            ...c,
+            messages: msgs,
+            title: c.title === "New Chat" ? getTitle(msgs) : c.title,
+            updatedAt: Date.now(),
+          };
+        })
+      );
+
+      setIsLoading(true);
       let assistantSoFar = "";
       const assistantId = crypto.randomUUID();
 
       const upsert = (chunk: string) => {
         assistantSoFar += chunk;
-        setMessages((prev) => {
-          const last = prev[prev.length - 1];
-          if (last?.role === "assistant" && last.id === assistantId) {
-            return prev.map((m) =>
-              m.id === assistantId ? { ...m, content: assistantSoFar } : m
-            );
-          }
-          return [...prev, { id: assistantId, role: "assistant", content: assistantSoFar }];
-        });
+        setConversations((prev) =>
+          prev.map((c) => {
+            if (c.id !== currentActiveId) return c;
+            const last = c.messages[c.messages.length - 1];
+            if (last?.role === "assistant" && last.id === assistantId) {
+              return {
+                ...c,
+                messages: c.messages.map((m) =>
+                  m.id === assistantId ? { ...m, content: assistantSoFar } : m
+                ),
+                updatedAt: Date.now(),
+              };
+            }
+            return {
+              ...c,
+              messages: [
+                ...c.messages,
+                { id: assistantId, role: "assistant" as const, content: assistantSoFar },
+              ],
+              updatedAt: Date.now(),
+            };
+          })
+        );
       };
 
       try {
-        const apiMessages = [...messages, userMsg].map((m) => ({
+        // Get current messages for API (need to read from latest state)
+        const currentConvo = conversations.find((c) => c.id === currentActiveId);
+        const allMsgs = [...(currentConvo?.messages || []), userMsg];
+        const apiMessages = allMsgs.map((m) => ({
           role: m.role,
           content: m.content,
         }));
@@ -116,10 +231,17 @@ export function useResearchChat() {
         setIsLoading(false);
       }
     },
-    [messages]
+    [activeId, conversations]
   );
 
-  const clearMessages = useCallback(() => setMessages([]), []);
-
-  return { messages, isLoading, sendMessage, clearMessages };
+  return {
+    messages,
+    isLoading,
+    sendMessage,
+    conversations,
+    activeId,
+    newChat,
+    switchChat,
+    deleteChat,
+  };
 }
