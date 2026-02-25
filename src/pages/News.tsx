@@ -1,9 +1,7 @@
-import { useState, useRef } from "react";
-import { ExternalLink, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Minus, CalendarDays } from "lucide-react";
+import { useRef } from "react";
+import { ExternalLink, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Minus } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
 
 // ── Mock data ──
 
@@ -43,26 +41,8 @@ const insiderTrades = [
   { id: 10, company: "QCOM", insider: "Cristiano Amon", title: "CEO", type: "buy" as const, shares: 20_000, price: 168.9, date: "Feb 17" },
 ];
 
-// Financial events keyed by date string "YYYY-MM-DD"
-const financialEvents: Record<string, { label: string; ticker: string; type: "earnings" | "dividend" | "conference" | "ipo" }[]> = {
-  "2026-02-26": [{ label: "NVDA Q4 Earnings", ticker: "NVDA", type: "earnings" }],
-  "2026-02-27": [{ label: "AMD Investor Day", ticker: "AMD", type: "conference" }],
-  "2026-03-01": [{ label: "AVGO Q1 Earnings", ticker: "AVGO", type: "earnings" }],
-  "2026-03-04": [{ label: "TSM Dividend Ex-Date", ticker: "TSM", type: "dividend" }],
-  "2026-03-06": [{ label: "ASML Annual Report", ticker: "ASML", type: "conference" }],
-  "2026-03-10": [{ label: "INTC Q1 Earnings", ticker: "INTC", type: "earnings" }],
-  "2026-03-12": [{ label: "ARM Q3 Earnings", ticker: "ARM", type: "earnings" }],
-  "2026-03-15": [{ label: "MSFT Dividend Ex-Date", ticker: "MSFT", type: "dividend" }],
-  "2026-03-18": [{ label: "MRVL Q4 Earnings", ticker: "MRVL", type: "earnings" }],
-  "2026-03-20": [{ label: "QCOM AI Summit", ticker: "QCOM", type: "conference" }],
-};
 
-const eventTypeConfig = {
-  earnings: { color: "text-yellow-400", bg: "bg-yellow-400/10", label: "Earnings" },
-  dividend: { color: "text-green-400", bg: "bg-green-400/10", label: "Dividend" },
-  conference: { color: "text-blue-400", bg: "bg-blue-400/10", label: "Event" },
-  ipo: { color: "text-purple-400", bg: "bg-purple-400/10", label: "IPO" },
-};
+// ── Components ──
 
 // ── Components ──
 
@@ -94,16 +74,7 @@ const sentimentConfig = {
   neutral: { color: "text-muted-foreground", bg: "bg-muted/20", icon: Minus, label: "Neutral" },
 };
 
-function toDateKey(d: Date) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
 export default function News() {
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-
-  const eventDates = Object.keys(financialEvents).map((d) => new Date(d + "T00:00:00"));
-  const selectedEvents = selectedDate ? financialEvents[toDateKey(selectedDate)] || [] : [];
-
   return (
     <div className="-m-6">
       <HeadlineTicker />
@@ -145,87 +116,42 @@ export default function News() {
           })}
         </div>
 
-        {/* Right panel — 30%: Calendar + Insider Trades */}
-        <div className="w-[30%] p-6 overflow-y-auto space-y-6">
-          {/* Financial Calendar */}
-          <div>
-            <h2 className="text-lg font-semibold text-foreground tracking-tight mb-3 flex items-center gap-2">
-              <CalendarDays className="h-4 w-4 text-primary" />
-              Financial Calendar
-            </h2>
-            <Card className="border-border/50">
-              <CardContent className="p-2">
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={setSelectedDate}
-                  className={cn("p-2 pointer-events-auto w-full")}
-                  modifiers={{ event: eventDates }}
-                  modifiersClassNames={{ event: "bg-primary/20 text-primary font-bold rounded-full" }}
-                />
-              </CardContent>
-            </Card>
-
-            {/* Events for selected date */}
-            {selectedEvents.length > 0 ? (
-              <div className="mt-3 space-y-2">
-                {selectedEvents.map((ev, i) => {
-                  const cfg = eventTypeConfig[ev.type];
-                  return (
-                    <Card key={i} className="border-border/50">
-                      <CardContent className="p-3 flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <p className="text-xs font-semibold text-foreground">{ev.label}</p>
-                          <Badge variant="outline" className="text-[10px] font-mono px-1.5 py-0 border-border/50 text-foreground/60">{ev.ticker}</Badge>
-                        </div>
-                        <span className={`text-[10px] font-semibold uppercase px-2 py-0.5 rounded ${cfg.bg} ${cfg.color}`}>{cfg.label}</span>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            ) : selectedDate ? (
-              <p className="text-xs text-muted-foreground mt-3">No events on this date.</p>
-            ) : null}
-          </div>
-
-          {/* Insider Trades */}
-          <div>
-            <h2 className="text-lg font-semibold text-foreground tracking-tight mb-4">Insider Trades</h2>
-            <div className="space-y-3">
-              {insiderTrades.map((trade) => (
-                <Card key={trade.id} className="border-border/50">
-                  <CardContent className="p-3">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-sm font-bold text-foreground">{trade.company}</span>
-                        <Badge
-                          variant="outline"
-                          className={`text-[10px] px-1.5 py-0 font-semibold uppercase ${
-                            trade.type === "buy"
-                              ? "text-green-400 border-green-400/30 bg-green-400/10"
-                              : "text-red-400 border-red-400/30 bg-red-400/10"
-                          }`}
-                        >
-                          {trade.type === "buy" ? <ArrowUpRight className="h-2.5 w-2.5 mr-0.5" /> : <ArrowDownRight className="h-2.5 w-2.5 mr-0.5" />}
-                          {trade.type}
-                        </Badge>
-                      </div>
-                      <span className="text-[10px] text-muted-foreground">{trade.date}</span>
+        {/* Right panel — 30%: Insider Trades */}
+        <div className="w-[30%] p-6 overflow-y-auto">
+          <h2 className="text-lg font-semibold text-foreground tracking-tight mb-4">Insider Trades</h2>
+          <div className="space-y-3">
+            {insiderTrades.map((trade) => (
+              <Card key={trade.id} className="border-border/50">
+                <CardContent className="p-3">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-sm font-bold text-foreground">{trade.company}</span>
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] px-1.5 py-0 font-semibold uppercase ${
+                          trade.type === "buy"
+                            ? "text-green-400 border-green-400/30 bg-green-400/10"
+                            : "text-red-400 border-red-400/30 bg-red-400/10"
+                        }`}
+                      >
+                        {trade.type === "buy" ? <ArrowUpRight className="h-2.5 w-2.5 mr-0.5" /> : <ArrowDownRight className="h-2.5 w-2.5 mr-0.5" />}
+                        {trade.type}
+                      </Badge>
                     </div>
-                    <div className="text-xs text-muted-foreground mb-1">
-                      <span className="text-foreground/80 font-medium">{trade.insider}</span>
-                      <span className="mx-1">•</span>
-                      <span>{trade.title}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground">{trade.shares.toLocaleString()} shares</span>
-                      <span className="font-mono text-foreground/80">${(trade.shares * trade.price).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                    <span className="text-[10px] text-muted-foreground">{trade.date}</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground mb-1">
+                    <span className="text-foreground/80 font-medium">{trade.insider}</span>
+                    <span className="mx-1">•</span>
+                    <span>{trade.title}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">{trade.shares.toLocaleString()} shares</span>
+                    <span className="font-mono text-foreground/80">${(trade.shares * trade.price).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </div>
