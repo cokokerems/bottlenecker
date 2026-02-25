@@ -146,7 +146,8 @@ serve(async (req) => {
   try {
     const { messages } = await req.json();
 
-    const systemPrompt = `You are an expert stock and supply chain research analyst embedded in a finance app called "AI Supply Chain Intel". Today's date is ${new Date().toISOString().split("T")[0]}.
+    const now = new Date();
+    const systemPrompt = `You are an expert stock and supply chain research analyst embedded in a finance app called "AI Supply Chain Intel". The current date and time is ${now.toISOString()} (UTC). Do NOT guess or approximate the time — use this exact timestamp when asked about the current time.
 
 CRITICAL RULES:
 - **ALWAYS call get_stock_data FIRST** when a user asks about any company's price, market cap, revenue, earnings, valuation, or any financial metric. NEVER answer financial questions from memory — your training data is outdated.
