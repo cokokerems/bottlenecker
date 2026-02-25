@@ -1,7 +1,8 @@
 import { useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
-import { Activity, BarChart3, GitBranch, AlertTriangle, StickyNote, Table2 } from "lucide-react";
+import { Activity, BarChart3, GitBranch, AlertTriangle, StickyNote, Table2, Bot } from "lucide-react";
+import ResearchDrawer from "@/components/ResearchDrawer";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: Activity },
@@ -9,6 +10,7 @@ const navItems = [
   { to: "/bottlenecks", label: "Bottlenecks", icon: AlertTriangle },
   { to: "/notes", label: "Notes", icon: StickyNote },
   { to: "/trade-log", label: "Trade Log", icon: Table2 },
+  { to: "/research", label: "Research", icon: Bot },
 ];
 
 export default function DashboardLayout() {
@@ -29,7 +31,8 @@ export default function DashboardLayout() {
               <NavLink key={item.to} to={item.to} icon={item.icon} label={item.label} />
             ))}
           </nav>
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-3">
+            <ResearchDrawer />
             <span className="text-xs font-mono text-muted-foreground">MVP • Mock Data</span>
           </div>
         </div>
