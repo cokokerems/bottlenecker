@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Trash2, Bot, User, Loader2, Search, Globe, BarChart3 } from "lucide-react";
+import { Send, Bot, User, Loader2, Search, Globe, BarChart3, Plus, Trash2, MessageSquare, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useResearchChat, type ChatMessage } from "@/hooks/useResearchChat";
+import { cn } from "@/lib/utils";
 
 const SUGGESTIONS = [
   { icon: BarChart3, text: "Analyze AAPL's financial health" },
@@ -49,15 +50,39 @@ function MessageBubble({ message }: { message: ChatMessage }) {
   );
 }
 
+function formatTime(ts: number) {
+  const d = new Date(ts);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return "Just now";
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  const diffDay = Math.floor(diffHr / 24);
+  if (diffDay < 7) return `${diffDay}d ago`;
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
 interface ResearchChatProps {
   compact?: boolean;
 }
 
 export default function ResearchChat({ compact = false }: ResearchChatProps) {
-  const { messages, isLoading, sendMessage, clearMessages } = useResearchChat();
+  const {
+    messages,
+    isLoading,
+    sendMessage,
+    conversations,
+    activeId,
+    newChat,
+    switchChat,
+    deleteChat,
+  } = useResearchChat();
+
   const [input, setInput] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(!compact);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -80,85 +105,162 @@ export default function ResearchChat({ compact = false }: ResearchChatProps) {
   };
 
   return (
-    <div className={`flex flex-col ${compact ? "h-full" : "h-[calc(100vh-8rem)]"}`}>
-      {/* Messages */}
-      <ScrollArea className="flex-1 pr-2" ref={scrollRef as any}>
-        <div className="space-y-4 p-4">
-          {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full min-h-[300px] gap-6">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <Bot className="h-6 w-6 text-primary" />
-              </div>
-              <div className="text-center space-y-1">
-                <h3 className="font-semibold text-lg">AI Research Assistant</h3>
-                <p className="text-sm text-muted-foreground max-w-sm">
-                  Ask me about stocks, financials, supply chains. I can pull live data, search the web, and scrape pages.
-                </p>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-md">
-                {SUGGESTIONS.map((s, i) => (
-                  <button
-                    key={i}
-                    onClick={() => sendMessage(s.text)}
-                    className="flex items-center gap-2 text-left text-sm px-3 py-2.5 rounded-lg border border-border/50 hover:bg-accent/50 transition-colors"
-                  >
-                    <s.icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    <span className="text-muted-foreground">{s.text}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : (
-            messages.map((msg) => <MessageBubble key={msg.id} message={msg} />)
-          )}
-          {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
-            <div className="flex gap-3">
-              <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center">
-                <Bot className="h-4 w-4 text-primary" />
-              </div>
-              <div className="bg-muted/50 border border-border/50 rounded-xl px-4 py-3">
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-              </div>
-            </div>
-          )}
-        </div>
-      </ScrollArea>
-
-      {/* Input */}
-      <div className="border-t border-border/50 p-3">
-        <div className="flex gap-2 items-end">
-          {messages.length > 0 && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={clearMessages}
-              className="flex-shrink-0 h-9 w-9"
-              title="Clear chat"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          )}
-          <Textarea
-            ref={textareaRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Ask about any stock, market, or supply chain..."
-            className="min-h-[40px] max-h-[120px] resize-none text-sm"
-            rows={1}
-          />
+    <div className={`flex ${compact ? "h-full" : "h-[calc(100vh-8rem)]"}`}>
+      {/* Conversation Sidebar */}
+      <div
+        className={cn(
+          "border-r border-border/50 flex flex-col transition-all duration-200 overflow-hidden",
+          sidebarOpen ? (compact ? "w-[180px]" : "w-[240px]") : "w-0"
+        )}
+      >
+        <div className="p-2 border-b border-border/50 flex items-center gap-1">
           <Button
-            size="icon"
-            onClick={handleSend}
-            disabled={!input.trim() || isLoading}
-            className="flex-shrink-0 h-9 w-9"
+            variant="outline"
+            size="sm"
+            onClick={newChat}
+            className="flex-1 h-8 text-xs gap-1.5"
           >
-            <Send className="h-4 w-4" />
+            <Plus className="h-3.5 w-3.5" />
+            New Chat
           </Button>
         </div>
-        <p className="text-[10px] text-muted-foreground mt-1.5 text-center">
-          AI can pull live financials • Search the web • Scrape pages
-        </p>
+        <ScrollArea className="flex-1">
+          <div className="p-1.5 space-y-0.5">
+            {conversations.map((c) => (
+              <div
+                key={c.id}
+                className={cn(
+                  "group flex items-center gap-1.5 rounded-md px-2 py-1.5 cursor-pointer transition-colors text-xs",
+                  c.id === activeId
+                    ? "bg-accent/60 text-accent-foreground"
+                    : "hover:bg-accent/30 text-muted-foreground"
+                )}
+                onClick={() => switchChat(c.id)}
+              >
+                <MessageSquare className="h-3.5 w-3.5 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="truncate font-medium">{c.title}</p>
+                  <p className="text-[10px] opacity-60">{formatTime(c.updatedAt)}</p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteChat(c.id);
+                  }}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
+            ))}
+            {conversations.length === 0 && (
+              <p className="text-[10px] text-muted-foreground text-center py-4">
+                No conversations yet
+              </p>
+            )}
+          </div>
+        </ScrollArea>
+      </div>
+
+      {/* Main Chat Area */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Toggle sidebar button */}
+        <div className="flex items-center px-2 py-1 border-b border-border/50">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => setSidebarOpen((v) => !v)}
+            title={sidebarOpen ? "Hide history" : "Show history"}
+          >
+            {sidebarOpen ? (
+              <PanelLeftClose className="h-4 w-4" />
+            ) : (
+              <PanelLeftOpen className="h-4 w-4" />
+            )}
+          </Button>
+          {!sidebarOpen && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={newChat}
+              className="h-7 text-xs gap-1 ml-1"
+            >
+              <Plus className="h-3 w-3" />
+              New
+            </Button>
+          )}
+        </div>
+
+        {/* Messages */}
+        <ScrollArea className="flex-1 pr-2" ref={scrollRef as any}>
+          <div className="space-y-4 p-4">
+            {messages.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full min-h-[300px] gap-6">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Bot className="h-6 w-6 text-primary" />
+                </div>
+                <div className="text-center space-y-1">
+                  <h3 className="font-semibold text-lg">AI Research Assistant</h3>
+                  <p className="text-sm text-muted-foreground max-w-sm">
+                    Ask me about stocks, financials, supply chains. I can pull live data, search the web, and scrape pages.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-md">
+                  {SUGGESTIONS.map((s, i) => (
+                    <button
+                      key={i}
+                      onClick={() => sendMessage(s.text)}
+                      className="flex items-center gap-2 text-left text-sm px-3 py-2.5 rounded-lg border border-border/50 hover:bg-accent/50 transition-colors"
+                    >
+                      <s.icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <span className="text-muted-foreground">{s.text}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              messages.map((msg) => <MessageBubble key={msg.id} message={msg} />)
+            )}
+            {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
+              <div className="flex gap-3">
+                <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center">
+                  <Bot className="h-4 w-4 text-primary" />
+                </div>
+                <div className="bg-muted/50 border border-border/50 rounded-xl px-4 py-3">
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                </div>
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+
+        {/* Input */}
+        <div className="border-t border-border/50 p-3">
+          <div className="flex gap-2 items-end">
+            <Textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask about any stock, market, or supply chain..."
+              className="min-h-[40px] max-h-[120px] resize-none text-sm"
+              rows={1}
+            />
+            <Button
+              size="icon"
+              onClick={handleSend}
+              disabled={!input.trim() || isLoading}
+              className="flex-shrink-0 h-9 w-9"
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-1.5 text-center">
+            AI can pull live financials • Search the web • Scrape pages
+          </p>
+        </div>
       </div>
     </div>
   );
