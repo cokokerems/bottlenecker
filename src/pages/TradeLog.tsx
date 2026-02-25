@@ -106,7 +106,7 @@ export default function TradeLog() {
               <TableHead className="w-[100px]">Symbol</TableHead>
               <TableHead className="w-[110px]">Bought</TableHead>
               <TableHead className="w-[110px]">Sold</TableHead>
-              <TableHead className="w-[110px]">P&L</TableHead>
+              <TableHead className="w-[160px]">P&L</TableHead>
               <TableHead>Comments</TableHead>
               <TableHead className="w-[50px]" />
             </TableRow>
@@ -150,15 +150,24 @@ export default function TradeLog() {
                   />
                 </TableCell>
                 <TableCell>
-                  <span
-                    className={cn(
-                      "font-mono text-sm",
-                      trade.pnl != null && trade.pnl > 0 && "text-green-500",
-                      trade.pnl != null && trade.pnl < 0 && "text-red-500"
-                    )}
-                  >
-                    {trade.pnl != null ? trade.pnl.toFixed(2) : "—"}
-                  </span>
+                  {trade.pnl != null ? (
+                    <span
+                      className={cn(
+                        "font-mono text-sm",
+                        trade.pnl > 0 && "text-green-500",
+                        trade.pnl < 0 && "text-red-500"
+                      )}
+                    >
+                      {trade.pnl.toFixed(2)}
+                      {trade.bought != null && trade.bought !== 0 && (
+                        <span className="ml-1.5 text-xs opacity-70">
+                          ({((trade.pnl / trade.bought) * 100).toFixed(1)}%)
+                        </span>
+                      )}
+                    </span>
+                  ) : (
+                    <span className="font-mono text-sm text-muted-foreground">—</span>
+                  )}
                 </TableCell>
                 <TableCell>
                   <Input
