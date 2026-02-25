@@ -8,6 +8,8 @@ import Index from "./pages/Index";
 import CompanyDetail from "./pages/CompanyDetail";
 import SupplyChainGraph from "./pages/SupplyChainGraph";
 import BottleneckAnalysis from "./pages/BottleneckAnalysis";
+import Notes from "./pages/Notes";
+import TradeLog from "./pages/TradeLog";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +26,8 @@ const App = () => (
             <Route path="/company/:id" element={<CompanyDetail />} />
             <Route path="/supply-chain" element={<SupplyChainGraph />} />
             <Route path="/bottlenecks" element={<BottleneckAnalysis />} />
+            <Route path="/notes" element={<Notes />} />
+            <Route path="/trade-log" element={<TradeLog />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

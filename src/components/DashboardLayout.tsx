@@ -1,12 +1,14 @@
 import { useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
-import { Activity, BarChart3, GitBranch, AlertTriangle } from "lucide-react";
+import { Activity, BarChart3, GitBranch, AlertTriangle, StickyNote, Table2 } from "lucide-react";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: Activity },
   { to: "/supply-chain", label: "Supply Chain", icon: GitBranch },
   { to: "/bottlenecks", label: "Bottlenecks", icon: AlertTriangle },
+  { to: "/notes", label: "Notes", icon: StickyNote },
+  { to: "/trade-log", label: "Trade Log", icon: Table2 },
 ];
 
 export default function DashboardLayout() {
