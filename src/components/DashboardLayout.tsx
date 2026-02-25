@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
-import { Activity, BarChart3, GitBranch, AlertTriangle, StickyNote, Table2, Bot } from "lucide-react";
+import { Activity, BarChart3, GitBranch, AlertTriangle, StickyNote, Table2, Newspaper, Bot } from "lucide-react";
 import ResearchDrawer from "@/components/ResearchDrawer";
 
 const navItems = [
@@ -10,6 +10,7 @@ const navItems = [
   { to: "/bottlenecks", label: "Bottlenecks", icon: AlertTriangle },
   { to: "/notes", label: "Notes", icon: StickyNote },
   { to: "/trade-log", label: "Trade Log", icon: Table2 },
+  { to: "/news", label: "News", icon: Newspaper },
   { to: "/research", label: "Research", icon: Bot },
 ];
 
