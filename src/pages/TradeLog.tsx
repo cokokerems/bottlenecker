@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { CalendarIcon, Plus, Trash2, Table2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -170,14 +171,31 @@ export default function TradeLog() {
                   )}
                 </TableCell>
                 <TableCell>
-                  <Input
-                    value={trade.comments}
-                    onChange={(e) =>
-                      updateTrade(trade.id, "comments", e.target.value)
-                    }
-                    placeholder="Notes..."
-                    className="h-8 bg-transparent border-none px-1"
-                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        className="h-8 w-full justify-start px-1 text-sm truncate max-w-[200px]"
+                      >
+                        {trade.comments ? (
+                          <span className="truncate">{trade.comments}</span>
+                        ) : (
+                          <span className="text-muted-foreground">Add comment...</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-72 p-3" align="start">
+                      <Textarea
+                        value={trade.comments}
+                        onChange={(e) =>
+                          updateTrade(trade.id, "comments", e.target.value)
+                        }
+                        placeholder="Write your comment..."
+                        className="min-h-[100px] text-sm"
+                        autoFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </TableCell>
                 <TableCell>
                   <Button
