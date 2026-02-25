@@ -10,6 +10,7 @@ import SupplyChainGraph from "./pages/SupplyChainGraph";
 import BottleneckAnalysis from "./pages/BottleneckAnalysis";
 import Notes from "./pages/Notes";
 import TradeLog from "./pages/TradeLog";
+import Research from "./pages/Research";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/bottlenecks" element={<BottleneckAnalysis />} />
             <Route path="/notes" element={<Notes />} />
             <Route path="/trade-log" element={<TradeLog />} />
+            <Route path="/research" element={<Research />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
