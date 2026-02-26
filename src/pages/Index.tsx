@@ -1,33 +1,23 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { companies, alerts as alertData, categoryLabels } from "@/data/companies";
-import type { CompanyCategory } from "@/data/categories";
+import { companies, alerts as alertData } from "@/data/companies";
 import { TrendingUp, TrendingDown, AlertTriangle, ArrowUpRight, ArrowDownRight, Wifi, WifiOff } from "lucide-react";
 import { SparklineChart } from "@/components/SparklineChart";
 import { Link } from "react-router-dom";
-import { useFMPQuotes } from "@/hooks/useFMPData";
+import { useFMPQuotes, useFMPSectorPerformance } from "@/hooks/useFMPData";
 import { useMemo } from "react";
 
 export default function DashboardHome() {
   const allTickers = useMemo(() => companies.map((c) => c.ticker), []);
   const { data: liveQuotes, isLoading, isError } = useFMPQuotes(allTickers);
+  const { data: sectorData } = useFMPSectorPerformance();
 
-  // Compute sector performance from live quotes
   const sectorPerf = useMemo(() => {
-    if (!liveQuotes) return [];
-    const sectorMap = new Map<CompanyCategory, number[]>();
-    for (const company of companies) {
-      const change = liveQuotes[company.ticker]?.changePercentage;
-      if (change == null) continue;
-      for (const cat of company.categories) {
-        if (!sectorMap.has(cat)) sectorMap.set(cat, []);
-        sectorMap.get(cat)!.push(change);
-      }
-    }
-    return Array.from(sectorMap.entries()).map(([cat, changes]) => ({
-      name: categoryLabels[cat],
-      change: changes.reduce((a, b) => a + b, 0) / changes.length,
+    if (!sectorData || sectorData.length === 0) return [];
+    return sectorData.map((s) => ({
+      name: s.sector,
+      change: parseFloat(s.changesPercentage),
     }));
-  }, [liveQuotes]);
+  }, [sectorData]);
 
   function getLivePrice(ticker: string, fallback: number): number {
     return liveQuotes?.[ticker]?.price ?? fallback;
