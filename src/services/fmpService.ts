@@ -1,5 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
+// ── Interfaces ──
+
 export interface FMPQuote {
   symbol: string;
   price: number;
@@ -105,6 +107,135 @@ export interface FMPHistoricalPrice {
   volume: number;
 }
 
+// ── New interfaces for Steps 2-10 ──
+
+export interface FMPAnalystEstimate {
+  symbol: string;
+  date: string;
+  estimatedRevenueAvg: number;
+  estimatedRevenueLow: number;
+  estimatedRevenueHigh: number;
+  estimatedEbitdaAvg: number;
+  estimatedEpsAvg: number;
+  estimatedEpsLow: number;
+  estimatedEpsHigh: number;
+  numberAnalystEstimatedRevenue: number;
+  numberAnalystsEstimatedEps: number;
+}
+
+export interface FMPPriceTargetConsensus {
+  symbol: string;
+  targetHigh: number;
+  targetLow: number;
+  targetMedian: number;
+  targetConsensus: number;
+}
+
+export interface FMPAnalystRecommendation {
+  symbol: string;
+  date: string;
+  strongBuy: number;
+  buy: number;
+  hold: number;
+  sell: number;
+  strongSell: number;
+  consensus: string;
+}
+
+export interface FMPDcf {
+  symbol: string;
+  date: string;
+  dcf: number;
+  "Stock Price": number;
+}
+
+export interface FMPInstitutionalHolder {
+  holder: string;
+  shares: number;
+  dateReported: string;
+  change: number;
+  value: number;
+}
+
+export interface FMPMutualFundHolder {
+  holder: string;
+  shares: number;
+  dateReported: string;
+  change: number;
+  weightedAvgPrice: number;
+}
+
+export interface FMPCongressionalTrade {
+  firstName: string;
+  lastName: string;
+  office: string;
+  transactionDate: string;
+  ticker: string;
+  assetDescription: string;
+  amount: string;
+  type: string;
+  link: string;
+}
+
+export interface FMPInsiderTradingStats {
+  symbol: string;
+  year: number;
+  quarter: number;
+  purchases: number;
+  sales: number;
+  buySellRatio: number;
+  totalBought: number;
+  totalSold: number;
+  averageBought: number;
+  averageSold: number;
+}
+
+export interface FMPEarningsTranscript {
+  symbol: string;
+  quarter: number;
+  year: number;
+  date: string;
+  content: string;
+}
+
+export interface FMPIpoCalendarEvent {
+  date: string;
+  company: string;
+  symbol: string;
+  exchange: string;
+  actions: string;
+  shares: number;
+  priceRange: string;
+  marketCap: number;
+}
+
+export interface FMPDividendCalendarEvent {
+  date: string;
+  label: string;
+  symbol: string;
+  dividend: number;
+  adjDividend: number;
+  recordDate: string;
+  paymentDate: string;
+  declarationDate: string;
+}
+
+export interface FMPStockSplitCalendarEvent {
+  date: string;
+  label: string;
+  symbol: string;
+  numerator: number;
+  denominator: number;
+}
+
+export interface FMPSearchResult {
+  symbol: string;
+  name: string;
+  currency: string;
+  stockExchange: string;
+  exchangeShortName: string;
+}
+
 // ── Local browser cache ──
 const localCache = new Map<string, { data: unknown; ts: number }>();
 const LOCAL_CACHE_TTL = 3 * 60 * 1000;
@@ -178,7 +309,7 @@ export async function fetchFullCompanyData(ticker: string): Promise<FMPCompanyDa
   return result[ticker] || {};
 }
 
-// ── New endpoints ──
+// ── Existing endpoints ──
 
 export async function fetchStockNews(tickers?: string[], limit = 20): Promise<FMPStockNews[]> {
   const params: Record<string, string> = { limit: String(limit), page: "0" };
@@ -206,4 +337,68 @@ export async function fetchHistoricalPrices(ticker: string, from: string, to: st
     from,
     to,
   });
+}
+
+// ── New endpoints ──
+
+export async function fetchAnalystEstimates(ticker: string): Promise<FMPAnalystEstimate[]> {
+  return fmpGeneric<FMPAnalystEstimate[]>("/analyst-estimates", { symbol: ticker, limit: "2" });
+}
+
+export async function fetchPriceTargetConsensus(ticker: string): Promise<FMPPriceTargetConsensus> {
+  const data = await fmpGeneric<FMPPriceTargetConsensus[]>("/price-target-consensus", { symbol: ticker });
+  return Array.isArray(data) ? data[0] : data;
+}
+
+export async function fetchAnalystRecommendations(ticker: string): Promise<FMPAnalystRecommendation[]> {
+  return fmpGeneric<FMPAnalystRecommendation[]>("/analyst-stock-recommendations", { symbol: ticker, limit: "1" });
+}
+
+export async function fetchDcf(ticker: string): Promise<FMPDcf> {
+  const data = await fmpGeneric<FMPDcf[]>("/dcf", { symbol: ticker });
+  return Array.isArray(data) ? data[0] : data;
+}
+
+export async function fetchInstitutionalHolders(ticker: string): Promise<FMPInstitutionalHolder[]> {
+  return fmpGeneric<FMPInstitutionalHolder[]>("/institutional-holder", { symbol: ticker });
+}
+
+export async function fetchMutualFundHolders(ticker: string): Promise<FMPMutualFundHolder[]> {
+  return fmpGeneric<FMPMutualFundHolder[]>("/mutual-fund-holder", { symbol: ticker });
+}
+
+export async function fetchSenateTrades(limit = 20): Promise<FMPCongressionalTrade[]> {
+  return fmpGeneric<FMPCongressionalTrade[]>("/senate-latest", { limit: String(limit) });
+}
+
+export async function fetchHouseTrades(limit = 20): Promise<FMPCongressionalTrade[]> {
+  return fmpGeneric<FMPCongressionalTrade[]>("/house-latest", { limit: String(limit) });
+}
+
+export async function fetchInsiderTradingStats(ticker: string): Promise<FMPInsiderTradingStats[]> {
+  return fmpGeneric<FMPInsiderTradingStats[]>("/insider-trading/statistics", { symbol: ticker });
+}
+
+export async function fetchEarningsTranscript(ticker: string, year: number, quarter: number): Promise<FMPEarningsTranscript[]> {
+  return fmpGeneric<FMPEarningsTranscript[]>("/earning-call-transcript", {
+    symbol: ticker,
+    year: String(year),
+    quarter: String(quarter),
+  });
+}
+
+export async function fetchIpoCalendar(from: string, to: string): Promise<FMPIpoCalendarEvent[]> {
+  return fmpGeneric<FMPIpoCalendarEvent[]>("/ipo-calendar", { from, to });
+}
+
+export async function fetchDividendCalendar(from: string, to: string): Promise<FMPDividendCalendarEvent[]> {
+  return fmpGeneric<FMPDividendCalendarEvent[]>("/dividend-calendar", { from, to });
+}
+
+export async function fetchStockSplitCalendar(from: string, to: string): Promise<FMPStockSplitCalendarEvent[]> {
+  return fmpGeneric<FMPStockSplitCalendarEvent[]>("/stock-split-calendar", { from, to });
+}
+
+export async function fetchTickerSearch(query: string, limit = 10): Promise<FMPSearchResult[]> {
+  return fmpGeneric<FMPSearchResult[]>("/search", { query, limit: String(limit) });
 }

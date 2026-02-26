@@ -1,8 +1,9 @@
-import { Company, categoryColors } from "@/data/companies";
-import { ValuationData, valuationData } from "@/data/valuation";
+import { Company } from "@/data/companies";
+import { valuationData } from "@/data/valuation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Bot, TrendingUp, Calculator, DollarSign, BarChart3, Layers, Zap, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { Bot, TrendingUp, Calculator, DollarSign, BarChart3, Layers, Zap, ArrowUpRight, ArrowDownRight, Wifi, WifiOff } from "lucide-react";
+import type { FMPCompanyData, FMPDcf } from "@/services/fmpService";
 
 function fmt(v: number, decimals = 1): string {
   return v.toFixed(decimals);
@@ -38,45 +39,72 @@ function SectionCard({ icon: Icon, title, badge, children }: { icon: React.Eleme
   );
 }
 
-export default function ValuationBreakdown({ company }: { company: Company }) {
+interface ValuationBreakdownProps {
+  company: Company;
+  liveData?: FMPCompanyData;
+  dcf?: FMPDcf;
+}
+
+export default function ValuationBreakdown({ company, liveData, dcf }: ValuationBreakdownProps) {
   const v = valuationData[company.id];
   if (!v) return null;
 
+  // Use live data when available, fall back to mock
+  const inc = liveData?.["income-statement"];
+  const bs = liveData?.["balance-sheet-statement"];
+  const isLive = !!(inc || bs);
+
+  const ebitda = inc?.ebitda ? inc.ebitda / 1e9 : v.ebitda;
+  const ebit = inc?.operatingIncome ? inc.operatingIncome / 1e9 : v.ebit;
+  const depreciation = inc?.depreciationAndAmortization ? inc.depreciationAndAmortization / 1e9 : v.depreciation;
+
   // 1. Enterprise Value
-  const ev = company.marketCap + company.totalDebt + company.preferredStock + company.minorityInterest - company.cashAndEquivalents;
+  const ev = company.marketCap + company.totalDebt + (company.preferredStock ?? 0) + company.minorityInterest - company.cashAndEquivalents;
   // 2. Equity Value
   const equityValue = company.currentPrice * v.sharesOutstanding;
   // 3. Takeover Premium
   const offerPrice = company.currentPrice * (1 + v.offerPremium);
   // 4. EV/EBITDA
-  const evEbitda = ev / v.ebitda;
+  const evEbitda = ev / ebitda;
   // 5. EV/Revenue
   const evRevenue = ev / company.revenue;
   // 6. P/E
   const pe = company.earnings !== 0 ? equityValue / company.earnings : NaN;
   // 7. FCF
-  const fcf = v.ebit * (1 - v.taxRate) + v.depreciation - v.capex - v.changeInWorkingCapital;
+  const fcf = ebit * (1 - v.taxRate) + depreciation - v.capex - v.changeInWorkingCapital;
   // 8. DCF
   const pvFCF = v.projectedFCF.reduce((sum, f, i) => sum + f / Math.pow(1 + v.wacc, i + 1), 0);
   // 9. Terminal Value (Gordon)
   const tvGordon = v.projectedFCF[4] * (1 + v.terminalGrowthRate) / (v.wacc - v.terminalGrowthRate);
   // 10. Terminal Value (Exit Multiple)
-  const tvExit = v.ebitda * v.exitMultiple;
-  // PV of terminal values
+  const tvExit = ebitda * v.exitMultiple;
   const pvTvGordon = tvGordon / Math.pow(1 + v.wacc, 5);
   const pvTvExit = tvExit / Math.pow(1 + v.wacc, 5);
-  // DCF values
   const dcfGordon = pvFCF + pvTvGordon;
   const dcfExit = pvFCF + pvTvExit;
-  // 11. WACC (display)
+  // 11. WACC
   const eV = equityValue;
   const totalV = eV + company.totalDebt;
   const waccCalc = (eV / totalV) * v.costOfEquity + (company.totalDebt / totalV) * v.costOfDebt * (1 - v.taxRate);
   // 12. Synergy
-  const synergy = (v.costSynergies + v.revenueSynergies) / v.synergyDiscountRate; // simplified perpetuity PV
+  const synergy = (v.costSynergies + v.revenueSynergies) / v.synergyDiscountRate;
   // 13. Accretion/Dilution
   const accretion = v.buyerEPS !== 0 ? (v.proFormaEPS - v.buyerEPS) / v.buyerEPS : 0;
   const isAccretive = accretion >= 0;
+
+  const summaryRows = [
+    { method: "Enterprise Value", value: ev },
+    { method: "DCF (Gordon Growth)", value: dcfGordon },
+    { method: "DCF (Exit Multiple)", value: dcfExit },
+    { method: "Synergy-Adj. EV", value: ev + synergy },
+  ];
+
+  // Add FMP DCF if available
+  if (dcf?.dcf) {
+    summaryRows.push({ method: "FMP DCF Fair Value", value: dcf.dcf });
+  }
+
+  const maxSummary = Math.max(...summaryRows.map((r) => r.value));
 
   return (
     <div className="space-y-4">
@@ -84,15 +112,18 @@ export default function ValuationBreakdown({ company }: { company: Company }) {
         <Bot className="h-5 w-5 text-primary" />
         <h2 className="text-lg font-bold">M&A Valuation Analysis</h2>
         <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-mono">AI Agent</span>
+        <div className="flex items-center gap-1 text-[10px] text-muted-foreground ml-auto">
+          {isLive ? <><Wifi className="h-3 w-3 text-success" /> Live inputs</> : <><WifiOff className="h-3 w-3" /> Mock data</>}
+        </div>
       </div>
-      <p className="text-xs text-muted-foreground -mt-2">Computed by valuation agent using 13 standard M&A formulas · Mock data for demonstration</p>
+      <p className="text-xs text-muted-foreground -mt-2">Computed using 13 standard M&A formulas · {isLive ? "Live FMP financials" : "Mock data fallback"}</p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* EV & Equity */}
         <SectionCard icon={DollarSign} title="Enterprise & Equity Value" badge="Formulas 1-2">
           <FormulaRow label="Market Capitalization" formula="Share Price × Diluted Shares" value={`$${fmt(equityValue)}B`} />
           <FormulaRow label="+ Total Debt" formula="" value={`$${fmt(company.totalDebt)}B`} />
-          <FormulaRow label="+ Preferred Stock" formula="" value={`$${fmt(company.preferredStock)}B`} />
+          <FormulaRow label="+ Preferred Stock" formula="" value={`$${fmt(company.preferredStock ?? 0)}B`} />
           <FormulaRow label="+ Minority Interest" formula="" value={`$${fmt(company.minorityInterest)}B`} />
           <FormulaRow label="− Cash & Equivalents" formula="" value={`$${fmt(company.cashAndEquivalents)}B`} />
           <Separator className="my-1" />
@@ -101,28 +132,31 @@ export default function ValuationBreakdown({ company }: { company: Company }) {
 
         {/* Multiples */}
         <SectionCard icon={BarChart3} title="Valuation Multiples" badge="Formulas 4-6">
-          <FormulaRow label="EV / EBITDA" formula={`$${fmt(ev)}B / $${fmt(v.ebitda)}B`} value={`${fmt(evEbitda)}x`} />
+          <FormulaRow label="EV / EBITDA" formula={`$${fmt(ev)}B / $${fmt(ebitda)}B`} value={`${fmt(evEbitda)}x`} />
           <FormulaRow label="EV / Revenue" formula={`$${fmt(ev)}B / $${fmt(company.revenue)}B`} value={`${fmt(evRevenue)}x`} />
           <FormulaRow label="P/E Ratio" formula={`$${fmt(equityValue)}B / $${fmt(company.earnings)}B`} value={isNaN(pe) ? "N/A" : `${fmt(pe)}x`} />
           <Separator className="my-1" />
-          <FormulaRow label="EBITDA" formula="Earnings Before Interest, Taxes, Depr. & Amort." value={`$${fmt(v.ebitda)}B`} />
+          <FormulaRow label="EBITDA" formula="Earnings Before Interest, Taxes, Depr. & Amort." value={`$${fmt(ebitda)}B`} />
         </SectionCard>
 
         {/* FCF & DCF */}
         <SectionCard icon={Calculator} title="DCF Valuation" badge="Formulas 7-10">
-          <FormulaRow label="EBIT × (1 − Tax)" formula={`$${fmt(v.ebit)}B × (1 − ${pct(v.taxRate)})`} value={`$${fmt(v.ebit * (1 - v.taxRate))}B`} />
-          <FormulaRow label="+ Depreciation" formula="" value={`$${fmt(v.depreciation)}B`} />
+          <FormulaRow label="EBIT × (1 − Tax)" formula={`$${fmt(ebit)}B × (1 − ${pct(v.taxRate)})`} value={`$${fmt(ebit * (1 - v.taxRate))}B`} />
+          <FormulaRow label="+ Depreciation" formula="" value={`$${fmt(depreciation)}B`} />
           <FormulaRow label="− CapEx" formula="" value={`$${fmt(v.capex)}B`} />
           <FormulaRow label="− ΔWC" formula="" value={`$${fmt(v.changeInWorkingCapital)}B`} />
           <Separator className="my-1" />
           <FormulaRow label="Free Cash Flow (FCF)" formula="EBIT(1−T) + D&A − CapEx − ΔWC" value={`$${fmt(fcf)}B`} highlight />
           <div className="mt-2" />
           <FormulaRow label="PV of 5-yr FCFs" formula="Σ FCFₜ / (1+WACC)ᵗ" value={`$${fmt(pvFCF)}B`} />
-          <FormulaRow label="Terminal Value (Gordon)" formula={`FCF₆ / (WACC − g) = $${fmt(v.projectedFCF[4] * (1 + v.terminalGrowthRate))}B / (${pct(v.wacc)} − ${pct(v.terminalGrowthRate)})`} value={`$${fmt(tvGordon)}B`} />
+          <FormulaRow label="Terminal Value (Gordon)" formula={`FCF₆ / (WACC − g)`} value={`$${fmt(tvGordon)}B`} />
           <FormulaRow label="Terminal Value (Exit)" formula={`EBITDA × ${v.exitMultiple}x`} value={`$${fmt(tvExit)}B`} />
           <Separator className="my-1" />
           <FormulaRow label="DCF (Gordon Growth)" formula="PV(FCFs) + PV(TV Gordon)" value={`$${fmt(dcfGordon)}B`} highlight />
           <FormulaRow label="DCF (Exit Multiple)" formula="PV(FCFs) + PV(TV Exit)" value={`$${fmt(dcfExit)}B`} highlight />
+          {dcf?.dcf && (
+            <FormulaRow label="FMP DCF Fair Value" formula="Pre-computed by FMP API" value={`$${dcf.dcf.toFixed(2)}`} highlight />
+          )}
         </SectionCard>
 
         {/* WACC */}
@@ -161,17 +195,12 @@ export default function ValuationBreakdown({ company }: { company: Company }) {
         {/* Summary */}
         <SectionCard icon={TrendingUp} title="Valuation Summary" badge="All Methods">
           <div className="space-y-2">
-            {[
-              { method: "Enterprise Value", value: ev },
-              { method: "DCF (Gordon Growth)", value: dcfGordon },
-              { method: "DCF (Exit Multiple)", value: dcfExit },
-              { method: "Synergy-Adj. EV", value: ev + synergy },
-            ].map((r) => (
+            {summaryRows.map((r) => (
               <div key={r.method} className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">{r.method}</span>
                 <div className="flex items-center gap-2">
                   <div className="h-2 rounded-full bg-primary/20 w-24 overflow-hidden">
-                    <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, (r.value / Math.max(dcfGordon, dcfExit, ev + synergy)) * 100)}%` }} />
+                    <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, (r.value / maxSummary) * 100)}%` }} />
                   </div>
                   <span className="font-mono text-sm font-bold">${fmt(r.value)}B</span>
                 </div>

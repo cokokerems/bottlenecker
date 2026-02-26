@@ -8,7 +8,6 @@ const corsHeaders = {
 
 const FMP_BASE = "https://financialmodelingprep.com/stable";
 
-// ── Tool definitions ──
 const tools = [
   {
     type: "function",
@@ -22,6 +21,23 @@ const tools = [
           ticker: { type: "string", description: "Stock ticker symbol, e.g. AAPL" },
         },
         required: ["ticker"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_earnings_transcript",
+      description:
+        "Fetch the earnings call transcript for a specific company, year, and quarter. Use when the user asks about earnings calls, management commentary, guidance, or what was said on a call.",
+      parameters: {
+        type: "object",
+        properties: {
+          ticker: { type: "string", description: "Stock ticker symbol, e.g. AAPL" },
+          year: { type: "number", description: "Fiscal year, e.g. 2024" },
+          quarter: { type: "number", description: "Quarter number 1-4" },
+        },
+        required: ["ticker", "year", "quarter"],
       },
     },
   },
@@ -57,7 +73,6 @@ const tools = [
   },
 ];
 
-// ── Tool execution ──
 async function executeToolCall(
   name: string,
   args: Record<string, string>
@@ -67,7 +82,7 @@ async function executeToolCall(
       const fmpKey = Deno.env.get("FMP_API_KEY");
       if (!fmpKey) return JSON.stringify({ error: "FMP_API_KEY not configured" });
 
-      const ticker = args.ticker.toUpperCase();
+      const ticker = (args.ticker as string).toUpperCase();
       const endpoints = ["quote", "profile", "income-statement", "balance-sheet-statement", "key-metrics"];
       const results: Record<string, unknown> = {};
 
@@ -85,6 +100,28 @@ async function executeToolCall(
         })
       );
       return JSON.stringify(results);
+    }
+
+    if (name === "get_earnings_transcript") {
+      const fmpKey = Deno.env.get("FMP_API_KEY");
+      if (!fmpKey) return JSON.stringify({ error: "FMP_API_KEY not configured" });
+
+      const ticker = (args.ticker as string).toUpperCase();
+      const year = args.year;
+      const quarter = args.quarter;
+      const sp = new URLSearchParams({ symbol: ticker, year: String(year), quarter: String(quarter), apikey: fmpKey });
+      const res = await fetch(`${FMP_BASE}/earning-call-transcript?${sp}`);
+      if (!res.ok) return JSON.stringify({ error: `FMP returned ${res.status}` });
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        const transcript = data[0];
+        // Truncate if very long
+        const content = typeof transcript.content === "string" && transcript.content.length > 12000
+          ? transcript.content.slice(0, 12000) + "\n\n...[truncated]"
+          : transcript.content;
+        return JSON.stringify({ ...transcript, content });
+      }
+      return JSON.stringify({ error: "No transcript found for this ticker/quarter" });
     }
 
     if (name === "web_search") {
@@ -120,7 +157,6 @@ async function executeToolCall(
       });
       const data = await res.json();
       const md = data.data?.markdown || data.markdown || "";
-      // Truncate if too long
       return md.length > 8000 ? md.slice(0, 8000) + "\n\n...[truncated]" : md;
     }
 
@@ -153,21 +189,25 @@ CRITICAL RULES — FOLLOW WITHOUT EXCEPTION:
 
 1. **FMP API IS YOUR PRIMARY DATA SOURCE.** For ANY question involving a company, stock, price, valuation, revenue, earnings, market cap, balance sheet, or any financial metric — you MUST call get_stock_data FIRST before doing anything else. NEVER answer financial questions from memory. Your training data is outdated and unreliable for financial figures.
 
-2. **ALWAYS CITE YOUR SOURCES.** Every claim, number, or data point in your response MUST have an inline citation. Use these formats:
+2. **EARNINGS TRANSCRIPTS.** When asked about earnings calls, management commentary, guidance, or what executives said on a call — use get_earnings_transcript with the correct ticker, year, and quarter. This returns the full transcript text for analysis.
+
+3. **ALWAYS CITE YOUR SOURCES.** Every claim, number, or data point in your response MUST have an inline citation. Use these formats:
    - For FMP data: "(Source: FMP API, live data)"
+   - For transcript data: "(Source: FMP Earnings Transcript, Q[X] [YEAR])"
    - For web search results: "(Source: [article/site name], [URL if available])"
    - For scraped pages: "(Source: [page title/URL])"
    - If combining multiple sources, cite each one individually next to the relevant data point.
    - NEVER present information without a source attribution. If you cannot cite a source, explicitly state the information is from your training knowledge and may be outdated.
 
-3. After getting live FMP data, you may supplement with web_search for context (news, analysis, sentiment). Always cite these supplementary sources.
+4. After getting live FMP data, you may supplement with web_search for context (news, analysis, sentiment). Always cite these supplementary sources.
 
-4. Use scrape_page to extract content from specific URLs the user provides or from URLs found via web_search.
+5. Use scrape_page to extract content from specific URLs the user provides or from URLs found via web_search.
 
 Available tools:
 1. **get_stock_data** — Fetches LIVE financial data: current price, market cap, revenue, earnings, balance sheet, key metrics. THIS IS YOUR PRIMARY TOOL — USE IT FIRST FOR ALL FINANCIAL QUESTIONS.
-2. **web_search** — Real-time web search for news, earnings reports, SEC filings, market analysis. Use as supplementary context AFTER get_stock_data.
-3. **scrape_page** — Scrape content from any URL (investor relations, 10-K filings, news articles).
+2. **get_earnings_transcript** — Fetches earnings call transcript for a given ticker, year, and quarter. Use for management commentary and guidance questions.
+3. **web_search** — Real-time web search for news, earnings reports, SEC filings, market analysis. Use as supplementary context AFTER get_stock_data.
+4. **scrape_page** — Scrape content from any URL (investor relations, 10-K filings, news articles).
 
 Format responses with clear markdown: headers, bullet points, tables for financial data. End every response with a "---\n**Sources:**" section listing all sources used.
 
@@ -178,7 +218,6 @@ If a tool returns an error about not being configured, let the user know they ne
       ...messages,
     ];
 
-    // Tool-calling loop (max 5 iterations to avoid infinite loops)
     for (let i = 0; i < 5; i++) {
       const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -221,12 +260,10 @@ If a tool returns an error about not being configured, let the user know they ne
         });
       }
 
-      // If the model wants to call tools
       if (choice.finish_reason === "tool_calls" || choice.message?.tool_calls?.length) {
         currentMessages.push(choice.message);
 
         const toolCalls = choice.message.tool_calls || [];
-        // Execute all tool calls in parallel
         const toolResults = await Promise.all(
           toolCalls.map(async (tc: { id: string; function: { name: string; arguments: string } }) => {
             const args = JSON.parse(tc.function.arguments);
@@ -240,11 +277,9 @@ If a tool returns an error about not being configured, let the user know they ne
         );
 
         currentMessages.push(...toolResults);
-        continue; // Loop back for the model to process tool results
+        continue;
       }
 
-      // Final text response — stream it back
-      // Re-call with streaming for the final response
       const streamRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {

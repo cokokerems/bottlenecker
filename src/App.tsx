@@ -12,6 +12,7 @@ import Notes from "./pages/Notes";
 import TradeLog from "./pages/TradeLog";
 import News from "./pages/News";
 import Research from "./pages/Research";
+import StockComparison from "./pages/StockComparison";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/trade-log" element={<TradeLog />} />
             <Route path="/news" element={<News />} />
             <Route path="/research" element={<Research />} />
+            <Route path="/compare" element={<StockComparison />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
