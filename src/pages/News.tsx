@@ -1,18 +1,13 @@
-import { useRef } from "react";
-import { ExternalLink, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Minus, Loader2 } from "lucide-react";
+import { useRef, useState } from "react";
+import { ExternalLink, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Minus, Loader2, Landmark } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useFMPStockNews, useFMPInsiderTrades } from "@/hooks/useFMPData";
-
-// ── Components ──
+import { useFMPStockNews, useFMPInsiderTrades, useFMPSenateTrades, useFMPHouseTrades } from "@/hooks/useFMPData";
 
 function HeadlineTicker() {
   const tickerRef = useRef<HTMLDivElement>(null);
   const { data: news } = useFMPStockNews(undefined, 15);
-
-  const headlines = news?.map((n) => `${n.symbol}: ${n.title}`) ?? [
-    "Loading latest headlines…",
-  ];
+  const headlines = news?.map((n) => `${n.symbol}: ${n.title}`) ?? ["Loading latest headlines…"];
 
   return (
     <div className="relative overflow-hidden border-b border-border bg-card/50 backdrop-blur-sm">
@@ -55,14 +50,23 @@ function timeAgo(dateStr: string) {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
+type RightTab = "insider" | "congress";
+
 export default function News() {
   const { data: newsArticles, isLoading: newsLoading } = useFMPStockNews(undefined, 25);
   const { data: insiderTrades, isLoading: tradesLoading } = useFMPInsiderTrades(15);
+  const { data: senateTrades, isLoading: senateLoading } = useFMPSenateTrades(15);
+  const { data: houseTrades, isLoading: houseLoading } = useFMPHouseTrades(15);
+  const [rightTab, setRightTab] = useState<RightTab>("insider");
+
+  const congressTrades = [
+    ...(senateTrades?.map((t) => ({ ...t, chamber: "Senate" as const })) || []),
+    ...(houseTrades?.map((t) => ({ ...t, chamber: "House" as const })) || []),
+  ].sort((a, b) => new Date(b.transactionDate).getTime() - new Date(a.transactionDate).getTime());
 
   return (
     <div className="-m-6">
       <HeadlineTicker />
-
       <div className="flex gap-0 min-h-[calc(100vh-7.5rem)]">
         {/* News Feed — 70% */}
         <div className="w-[70%] border-r border-border p-6 space-y-4 overflow-y-auto">
@@ -107,58 +111,113 @@ export default function News() {
           )}
         </div>
 
-        {/* Right panel — 30%: Insider Trades */}
+        {/* Right panel — 30% */}
         <div className="w-[30%] p-6 overflow-y-auto">
-          <h2 className="text-lg font-semibold text-foreground tracking-tight mb-4">Insider Trades</h2>
-          {tradesLoading ? (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground py-8 justify-center">
-              <Loader2 className="h-4 w-4 animate-spin" /> Loading…
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {insiderTrades?.map((trade, idx) => {
-                const isBuy = trade.transactionType?.toLowerCase().includes("purchase") ||
-                              trade.transactionType?.toLowerCase().includes("buy") ||
-                              trade.transactionType?.toLowerCase() === "p-purchase" ||
-                              trade.transactionType?.toLowerCase() === "a-award";
-                return (
-                  <a key={idx} href={trade.link} target="_blank" rel="noopener noreferrer">
-                    <Card className="border-border/50 mb-3">
-                      <CardContent className="p-3">
-                        <div className="flex items-center justify-between mb-1.5">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono text-sm font-bold text-foreground">{trade.symbol}</span>
-                            <Badge
-                              variant="outline"
-                              className={`text-[10px] px-1.5 py-0 font-semibold uppercase ${
-                                isBuy
-                                  ? "text-green-400 border-green-400/30 bg-green-400/10"
-                                  : "text-red-400 border-red-400/30 bg-red-400/10"
-                              }`}
-                            >
-                              {isBuy ? <ArrowUpRight className="h-2.5 w-2.5 mr-0.5" /> : <ArrowDownRight className="h-2.5 w-2.5 mr-0.5" />}
-                              {isBuy ? "buy" : "sell"}
-                            </Badge>
-                          </div>
-                          <span className="text-[10px] text-muted-foreground">{trade.transactionDate}</span>
-                        </div>
-                        <div className="text-xs text-muted-foreground mb-1">
-                          <span className="text-foreground/80 font-medium">{trade.reportingName}</span>
-                          <span className="mx-1">•</span>
-                          <span>{trade.typeOfOwner}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">{trade.securitiesTransacted?.toLocaleString()} shares</span>
-                          <span className="font-mono text-foreground/80">
-                            ${((trade.securitiesTransacted || 0) * (trade.price || 0)).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                          </span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </a>
-                );
-              })}
-            </div>
+          {/* Tab bar */}
+          <div className="flex gap-1 mb-4 border-b border-border/50 pb-2">
+            <button
+              onClick={() => setRightTab("insider")}
+              className={`text-xs font-semibold px-3 py-1.5 rounded-t transition-colors ${rightTab === "insider" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              Insider Trades
+            </button>
+            <button
+              onClick={() => setRightTab("congress")}
+              className={`text-xs font-semibold px-3 py-1.5 rounded-t transition-colors flex items-center gap-1 ${rightTab === "congress" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              <Landmark className="h-3 w-3" /> Congress
+            </button>
+          </div>
+
+          {rightTab === "insider" && (
+            <>
+              {tradesLoading ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground py-8 justify-center">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {insiderTrades?.map((trade, idx) => {
+                    const isBuy = trade.transactionType?.toLowerCase().includes("purchase") ||
+                                  trade.transactionType?.toLowerCase().includes("buy") ||
+                                  trade.transactionType?.toLowerCase() === "p-purchase" ||
+                                  trade.transactionType?.toLowerCase() === "a-award";
+                    return (
+                      <a key={idx} href={trade.link} target="_blank" rel="noopener noreferrer">
+                        <Card className="border-border/50 mb-3">
+                          <CardContent className="p-3">
+                            <div className="flex items-center justify-between mb-1.5">
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono text-sm font-bold text-foreground">{trade.symbol}</span>
+                                <Badge variant="outline" className={`text-[10px] px-1.5 py-0 font-semibold uppercase ${isBuy ? "text-green-400 border-green-400/30 bg-green-400/10" : "text-red-400 border-red-400/30 bg-red-400/10"}`}>
+                                  {isBuy ? <ArrowUpRight className="h-2.5 w-2.5 mr-0.5" /> : <ArrowDownRight className="h-2.5 w-2.5 mr-0.5" />}
+                                  {isBuy ? "buy" : "sell"}
+                                </Badge>
+                              </div>
+                              <span className="text-[10px] text-muted-foreground">{trade.transactionDate}</span>
+                            </div>
+                            <div className="text-xs text-muted-foreground mb-1">
+                              <span className="text-foreground/80 font-medium">{trade.reportingName}</span>
+                              <span className="mx-1">•</span><span>{trade.typeOfOwner}</span>
+                            </div>
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-muted-foreground">{trade.securitiesTransacted?.toLocaleString()} shares</span>
+                              <span className="font-mono text-foreground/80">${((trade.securitiesTransacted || 0) * (trade.price || 0)).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </a>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          )}
+
+          {rightTab === "congress" && (
+            <>
+              {senateLoading && houseLoading ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground py-8 justify-center">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Loading congressional trades…
+                </div>
+              ) : congressTrades.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-8">No congressional trades found</p>
+              ) : (
+                <div className="space-y-3">
+                  {congressTrades.slice(0, 20).map((trade, idx) => {
+                    const isBuy = trade.type?.toLowerCase().includes("purchase");
+                    return (
+                      <a key={idx} href={trade.link} target="_blank" rel="noopener noreferrer">
+                        <Card className="border-border/50 mb-3">
+                          <CardContent className="p-3">
+                            <div className="flex items-center justify-between mb-1.5">
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono text-sm font-bold text-foreground">{trade.ticker || "—"}</span>
+                                <Badge variant="outline" className={`text-[10px] px-1.5 py-0 font-semibold uppercase ${isBuy ? "text-green-400 border-green-400/30 bg-green-400/10" : "text-red-400 border-red-400/30 bg-red-400/10"}`}>
+                                  {isBuy ? "buy" : "sell"}
+                                </Badge>
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-border/50 text-foreground/60">
+                                  {trade.chamber}
+                                </Badge>
+                              </div>
+                              <span className="text-[10px] text-muted-foreground">{trade.transactionDate}</span>
+                            </div>
+                            <div className="text-xs text-muted-foreground mb-1">
+                              <span className="text-foreground/80 font-medium">{trade.firstName} {trade.lastName}</span>
+                              {trade.office && <><span className="mx-1">•</span><span>{trade.office}</span></>}
+                            </div>
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-muted-foreground truncate mr-2">{trade.assetDescription || trade.type}</span>
+                              <span className="font-mono text-foreground/80 shrink-0">{trade.amount}</span>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </a>
+                    );
+                  })}
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
