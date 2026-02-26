@@ -8,6 +8,14 @@ const corsHeaders = {
 
 const FMP_BASE = "https://financialmodelingprep.com/stable";
 
+const ALLOWED_MODELS = [
+  "google/gemini-3-pro-preview",
+  "google/gemini-3-flash-preview",
+  "openai/gpt-5.2",
+] as const;
+
+const DEFAULT_MODEL = "google/gemini-3-pro-preview";
+
 const tools = [
   {
     type: "function",
@@ -115,7 +123,6 @@ async function executeToolCall(
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
         const transcript = data[0];
-        // Truncate if very long
         const content = typeof transcript.content === "string" && transcript.content.length > 12000
           ? transcript.content.slice(0, 12000) + "\n\n...[truncated]"
           : transcript.content;
@@ -180,10 +187,19 @@ serve(async (req) => {
   }
 
   try {
-    const { messages } = await req.json();
+    const { messages, model: requestedModel } = await req.json();
+
+    // Validate model
+    const chosenModel = ALLOWED_MODELS.includes(requestedModel) ? requestedModel : DEFAULT_MODEL;
 
     const now = new Date();
-    const systemPrompt = `You are an expert stock and supply chain research analyst embedded in a finance app called "AI Supply Chain Intel". The current date and time is ${now.toISOString()} (UTC). Do NOT guess or approximate the time — use this exact timestamp when asked about the current time.
+    const dateStr = now.toISOString().split("T")[0];
+    const year = now.getUTCFullYear();
+
+    const systemPrompt = `You are an expert stock and supply chain research analyst embedded in a finance app called "AI Supply Chain Intel".
+
+Today is ${dateStr}. The current time is ${now.toISOString()} UTC. The year is ${year}.
+ALWAYS use this as your reference for "today", "current", "latest", "recent", and any time-relative language. Your training data may be outdated — never assume the current year or date from your training knowledge.
 
 CRITICAL RULES — FOLLOW WITHOUT EXCEPTION:
 
@@ -207,9 +223,9 @@ Available tools:
 1. **get_stock_data** — Fetches LIVE financial data: current price, market cap, revenue, earnings, balance sheet, key metrics. THIS IS YOUR PRIMARY TOOL — USE IT FIRST FOR ALL FINANCIAL QUESTIONS.
 2. **get_earnings_transcript** — Fetches earnings call transcript for a given ticker, year, and quarter. Use for management commentary and guidance questions.
 3. **web_search** — Real-time web search for news, earnings reports, SEC filings, market analysis. Use as supplementary context AFTER get_stock_data.
-4. **scrape_page** — Scrape content from any URL (investor relations, 10-K filings, news articles).
+4. **scrape_page** — Scrape content from any URL (investor relations, SEC filing, news articles).
 
-Format responses with clear markdown: headers, bullet points, tables for financial data. End every response with a "---\n**Sources:**" section listing all sources used.
+Format responses with clear markdown: headers, bullet points, tables for financial data. End every response with a "---\\n**Sources:**" section listing all sources used.
 
 If a tool returns an error about not being configured, let the user know they need to connect that service in their project settings.`;
 
@@ -226,7 +242,7 @@ If a tool returns an error about not being configured, let the user know they ne
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
+          model: chosenModel,
           messages: currentMessages,
           tools,
           stream: false,
@@ -287,7 +303,7 @@ If a tool returns an error about not being configured, let the user know they ne
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
+          model: chosenModel,
           messages: currentMessages,
           stream: true,
         }),
