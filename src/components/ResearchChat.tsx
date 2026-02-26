@@ -1,12 +1,19 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Bot, User, Loader2, Search, Globe, BarChart3, Plus, Trash2, MessageSquare, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Send, Bot, User, Loader2, Search, Globe, BarChart3, Plus, Trash2, MessageSquare, PanelLeftClose, PanelLeftOpen, ChevronDown, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { useResearchChat, type ChatMessage } from "@/hooks/useResearchChat";
+import { useResearchChat, type ChatMessage, type ModelId } from "@/hooks/useResearchChat";
 import { cn } from "@/lib/utils";
+
+const MODEL_OPTIONS: { id: ModelId; label: string; shortLabel: string; description: string }[] = [
+  { id: "google/gemini-3-pro-preview", label: "Gemini 3 Pro", shortLabel: "Gemini Pro", description: "Deep reasoning, best for complex analysis" },
+  { id: "google/gemini-3-flash-preview", label: "Gemini 3 Flash", shortLabel: "Flash", description: "Fast, good for quick questions" },
+  { id: "openai/gpt-5.2", label: "GPT-5.2", shortLabel: "GPT-5.2", description: "OpenAI's latest, strong reasoning" },
+];
 
 const SUGGESTIONS = [
   { icon: BarChart3, text: "Analyze AAPL's financial health" },
@@ -78,11 +85,16 @@ export default function ResearchChat({ compact = false }: ResearchChatProps) {
     newChat,
     switchChat,
     deleteChat,
+    model,
+    setModel,
   } = useResearchChat();
 
   const [input, setInput] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(!compact);
+  const [modelOpen, setModelOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const currentModelOption = MODEL_OPTIONS.find((m) => m.id === model) || MODEL_OPTIONS[0];
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -240,6 +252,41 @@ export default function ResearchChat({ compact = false }: ResearchChatProps) {
         {/* Input */}
         <div className="border-t border-border/50 p-3">
           <div className="flex gap-2 items-end">
+            {/* Model Selector */}
+            <Popover open={modelOpen} onOpenChange={setModelOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 gap-1 text-xs flex-shrink-0 px-2.5"
+                >
+                  <span className="truncate max-w-[80px]">{currentModelOption.shortLabel}</span>
+                  <ChevronDown className="h-3 w-3 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 p-1.5 bg-popover" align="start" side="top">
+                {MODEL_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => {
+                      setModel(opt.id);
+                      setModelOpen(false);
+                    }}
+                    className={cn(
+                      "flex items-center gap-2.5 w-full rounded-md px-2.5 py-2 text-left text-sm transition-colors hover:bg-accent/50",
+                      model === opt.id && "bg-accent/40"
+                    )}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm">{opt.label}</p>
+                      <p className="text-[11px] text-muted-foreground">{opt.description}</p>
+                    </div>
+                    {model === opt.id && <Check className="h-4 w-4 text-primary flex-shrink-0" />}
+                  </button>
+                ))}
+              </PopoverContent>
+            </Popover>
+
             <Textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}

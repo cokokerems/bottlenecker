@@ -1,5 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 
+export type ModelId = "google/gemini-3-pro-preview" | "google/gemini-3-flash-preview" | "openai/gpt-5.2";
+
 export type ChatMessage = {
   id: string;
   role: "user" | "assistant";
@@ -12,10 +14,12 @@ export type Conversation = {
   messages: ChatMessage[];
   createdAt: number;
   updatedAt: number;
+  model: ModelId;
 };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-research`;
 const STORAGE_KEY = "research-conversations";
+const DEFAULT_MODEL: ModelId = "google/gemini-3-pro-preview";
 
 function loadConversations(): Conversation[] {
   try {
@@ -30,10 +34,15 @@ function loadConversations(): Conversation[] {
         messages: parsed as ChatMessage[],
         createdAt: Date.now(),
         updatedAt: Date.now(),
+        model: "google/gemini-3-flash-preview",
       };
       return migrated.messages.length > 0 ? [migrated] : [];
     }
-    return parsed;
+    // Migrate conversations missing model field
+    return (parsed as any[]).map((c) => ({
+      ...c,
+      model: c.model || "google/gemini-3-flash-preview",
+    }));
   } catch {
     return [];
   }
@@ -59,11 +68,20 @@ export function useResearchChat() {
 
   const activeConvo = conversations.find((c) => c.id === activeId) || null;
   const messages = activeConvo?.messages || [];
+  const model: ModelId = activeConvo?.model || DEFAULT_MODEL;
 
   // Persist
   useEffect(() => {
     saveConversations(conversations);
   }, [conversations]);
+
+  const setModel = useCallback((newModel: ModelId) => {
+    setConversations((prev) =>
+      prev.map((c) =>
+        c.id === activeConvo?.id ? { ...c, model: newModel, updatedAt: Date.now() } : c
+      )
+    );
+  }, [activeConvo?.id]);
 
   const newChat = useCallback(() => {
     const id = crypto.randomUUID();
@@ -73,6 +91,7 @@ export function useResearchChat() {
       messages: [],
       createdAt: Date.now(),
       updatedAt: Date.now(),
+      model: DEFAULT_MODEL,
     };
     setConversations((prev) => [convo, ...prev]);
     setActiveId(id);
@@ -108,6 +127,7 @@ export function useResearchChat() {
           messages: [],
           createdAt: Date.now(),
           updatedAt: Date.now(),
+          model: DEFAULT_MODEL,
         };
         setConversations((prev) => [convo, ...prev]);
         setActiveId(id);
@@ -166,8 +186,9 @@ export function useResearchChat() {
       };
 
       try {
-        // Get current messages for API (need to read from latest state)
+        // Get current messages and model for API
         const currentConvo = conversations.find((c) => c.id === currentActiveId);
+        const activeModel = currentConvo?.model || DEFAULT_MODEL;
         const allMsgs = [...(currentConvo?.messages || []), userMsg];
         const apiMessages = allMsgs.map((m) => ({
           role: m.role,
@@ -180,7 +201,7 @@ export function useResearchChat() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
-          body: JSON.stringify({ messages: apiMessages }),
+          body: JSON.stringify({ messages: apiMessages, model: activeModel }),
         });
 
         if (!resp.ok) {
@@ -243,5 +264,7 @@ export function useResearchChat() {
     newChat,
     switchChat,
     deleteChat,
+    model,
+    setModel,
   };
 }
