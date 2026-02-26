@@ -6,8 +6,9 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const FMP_BASE = "https://financialmodelingprep.com/stable";
-const CONCURRENCY = 3; // Max parallel requests to avoid rate limits
+const FMP_BASE_STABLE = "https://financialmodelingprep.com/stable";
+const FMP_BASE_V3 = "https://financialmodelingprep.com/api/v3";
+const CONCURRENCY = 3;
 
 const cache = new Map<string, { data: unknown; ts: number }>();
 const CACHE_TTL_MS = 5 * 60 * 1000;
@@ -23,17 +24,18 @@ function setCache(key: string, data: unknown) {
   cache.set(key, { data, ts: Date.now() });
 }
 
-async function fmpFetch(path: string, params: Record<string, string>, apiKey: string): Promise<unknown> {
-  const cacheKey = path + JSON.stringify(params);
+async function fmpFetch(path: string, params: Record<string, string>, apiKey: string, useV3 = false): Promise<unknown> {
+  const cacheKey = (useV3 ? "v3:" : "") + path + JSON.stringify(params);
   const cached = getCached(cacheKey);
   if (cached) return cached;
 
+  const base = useV3 ? FMP_BASE_V3 : FMP_BASE_STABLE;
   const searchParams = new URLSearchParams({ ...params, apikey: apiKey });
-  const url = `${FMP_BASE}${path}?${searchParams}`;
+  const url = `${base}${path}?${searchParams}`;
   const res = await fetch(url);
   if (!res.ok) {
     const body = await res.text();
-    console.error(`FMP ${res.status} for ${path} symbol=${params.symbol}: ${body.slice(0, 200)}`);
+    console.error(`FMP ${res.status} for ${path}: ${body.slice(0, 200)}`);
     return null;
   }
   const data = await res.json();
@@ -41,18 +43,15 @@ async function fmpFetch(path: string, params: Record<string, string>, apiKey: st
   return data;
 }
 
-// Run tasks with limited concurrency
 async function runWithConcurrency<T>(tasks: (() => Promise<T>)[], limit: number): Promise<T[]> {
   const results: T[] = [];
   let idx = 0;
-  
   async function worker() {
     while (idx < tasks.length) {
       const i = idx++;
       results[i] = await tasks[i]();
     }
   }
-
   const workers = Array.from({ length: Math.min(limit, tasks.length) }, () => worker());
   await Promise.all(workers);
   return results;
@@ -72,10 +71,23 @@ serve(async (req) => {
   }
 
   try {
-    const { tickers, endpoints } = await req.json();
+    const body = await req.json();
+
+    // ── Mode 1: Generic passthrough (path + params) ──
+    if (body.path) {
+      const params: Record<string, string> = body.params || {};
+      const useV3 = body.v3 === true;
+      const data = await fmpFetch(body.path, params, apiKey, useV3);
+      return new Response(JSON.stringify(data ?? []), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── Mode 2: Multi-ticker/multi-endpoint batch (original) ──
+    const { tickers, endpoints } = body;
 
     if (!tickers || !Array.isArray(tickers) || tickers.length === 0) {
-      return new Response(JSON.stringify({ error: "tickers array required" }), {
+      return new Response(JSON.stringify({ error: "tickers array or path required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -84,26 +96,23 @@ serve(async (req) => {
     const requestedEndpoints = endpoints || ["quote"];
     const results: Record<string, Record<string, unknown>> = {};
 
-    // Build all tasks — one per ticker per endpoint
     const tasks: (() => Promise<void>)[] = [];
 
     for (const endpoint of requestedEndpoints) {
       for (const ticker of tickers) {
         tasks.push(async () => {
           const params: Record<string, string> = { symbol: ticker };
-          let path = `/${endpoint}`;
-          
+
           if (endpoint === "key-metrics") {
             params.period = "ttm";
           } else if (endpoint === "income-statement" || endpoint === "balance-sheet-statement" || endpoint === "cash-flow-statement") {
             params.limit = "1";
           }
 
-          const data = await fmpFetch(path, params, apiKey);
+          const data = await fmpFetch(`/${endpoint}`, params, apiKey);
           if (data) {
             if (!results[ticker]) results[ticker] = {};
             if (Array.isArray(data)) {
-              // quote returns array with one item, financial statements too
               results[ticker][endpoint] = data.length === 1 ? data[0] : data;
             } else {
               results[ticker][endpoint] = data;

@@ -2,18 +2,32 @@ import { useParams, Link } from "react-router-dom";
 import { getCompanyById, companies, categoryLabels, categoryColors, getPrimaryCategory } from "@/data/companies";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowUpRight, ArrowDownRight, ExternalLink, Wifi, WifiOff } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, ArrowDownRight, ExternalLink, Wifi, WifiOff, Loader2 } from "lucide-react";
 import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
 import ValuationBreakdown from "@/components/ValuationBreakdown";
 import CompetitivePosition from "@/components/CompetitivePosition";
-import { useFMPCompanyData } from "@/hooks/useFMPData";
+import { useFMPCompanyData, useFMPHistoricalPrices } from "@/hooks/useFMPData";
 import { useMemo } from "react";
+
+function toDateKey(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 export default function CompanyDetail() {
   const { id } = useParams<{ id: string }>();
   const company = getCompanyById(id || "");
 
   const { data: liveData, isLoading, isError } = useFMPCompanyData(company?.ticker || "");
+
+  // Historical prices: 30 days
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now);
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const { data: historicalPrices } = useFMPHistoricalPrices(
+    company?.ticker || "",
+    toDateKey(thirtyDaysAgo),
+    toDateKey(now)
+  );
 
   // Merge live data with mock fallbacks
   const merged = useMemo(() => {
@@ -25,7 +39,7 @@ export default function CompanyDetail() {
     return {
       currentPrice: q?.price ?? company.currentPrice,
       priceChange: q?.changePercentage ?? company.priceChange,
-      marketCap: q?.marketCap ? q.marketCap / 1e9 : company.marketCap, // API returns raw, we use billions
+      marketCap: q?.marketCap ? q.marketCap / 1e9 : company.marketCap,
       revenue: inc?.revenue ? inc.revenue / 1e9 : company.revenue,
       earnings: inc?.netIncome ? inc.netIncome / 1e9 : company.earnings,
       grossMargin: inc?.grossProfitRatio ? inc.grossProfitRatio * 100 : company.grossMargin,
@@ -35,6 +49,23 @@ export default function CompanyDetail() {
     };
   }, [company, liveData]);
 
+  // Chart data from live historical or fallback to mock
+  const chartData = useMemo(() => {
+    if (historicalPrices && historicalPrices.length > 0) {
+      return [...historicalPrices]
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+        .map((p) => ({
+          day: new Date(p.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+          price: p.close,
+        }));
+    }
+    if (!company) return [];
+    return company.priceHistory.map((price, i) => ({
+      day: `D-${30 - i}`,
+      price,
+    }));
+  }, [historicalPrices, company]);
+
   if (!company || !merged) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -43,16 +74,9 @@ export default function CompanyDetail() {
     );
   }
 
-  const chartData = company.priceHistory.map((price, i) => ({
-    day: `D-${30 - i}`,
-    price,
-  }));
-
   const supplierCompanies = company.suppliers.map((sid) => companies.find((c) => c.id === sid)).filter(Boolean);
   const customerCompanies = company.customers.map((cid) => companies.find((c) => c.id === cid)).filter(Boolean);
-  const primaryCat = getPrimaryCategory(company);
 
-  // Build a merged company object for child components that expect Company type
   const mergedCompany = {
     ...company,
     currentPrice: merged.currentPrice,
