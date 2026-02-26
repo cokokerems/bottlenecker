@@ -234,7 +234,7 @@ If a tool returns an error about not being configured, let the user know they ne
       ...messages,
     ];
 
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 10; i++) {
       const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
