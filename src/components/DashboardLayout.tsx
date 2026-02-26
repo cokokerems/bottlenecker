@@ -1,13 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
 import {
-  Activity, BarChart3, GitBranch, AlertTriangle, StickyNote, Table2, Newspaper, Bot, Menu, X, CalendarDays,
+  Activity, BarChart3, GitBranch, AlertTriangle, StickyNote, Table2, Newspaper, Bot, Menu, X, CalendarDays, Loader2,
 } from "lucide-react";
 import ResearchDrawer from "@/components/ResearchDrawer";
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { useFMPEarningsCalendar } from "@/hooks/useFMPData";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: Activity },
@@ -19,27 +20,8 @@ const navItems = [
   { to: "/research", label: "Research", icon: Bot },
 ];
 
-const financialEvents: Record<string, { label: string; ticker: string; type: "earnings" | "dividend" | "conference" | "report" }[]> = {
-  "2026-02-26": [{ label: "NVDA Q4 Earnings", ticker: "NVDA", type: "earnings" }],
-  "2026-02-27": [{ label: "AMD Investor Day", ticker: "AMD", type: "conference" }],
-  "2026-03-01": [{ label: "AVGO Q1 Earnings", ticker: "AVGO", type: "earnings" }],
-  "2026-03-04": [{ label: "TSM Dividend Ex-Date", ticker: "TSM", type: "dividend" }],
-  "2026-03-06": [{ label: "ASML Annual Report", ticker: "ASML", type: "report" }],
-  "2026-03-10": [{ label: "INTC Q1 Earnings", ticker: "INTC", type: "earnings" }],
-  "2026-03-12": [{ label: "ARM Q3 Earnings", ticker: "ARM", type: "earnings" }],
-  "2026-03-15": [{ label: "MSFT Dividend Ex-Date", ticker: "MSFT", type: "dividend" }],
-  "2026-03-18": [{ label: "MRVL Q4 Earnings", ticker: "MRVL", type: "earnings" }],
-  "2026-03-20": [{ label: "QCOM AI Summit", ticker: "QCOM", type: "conference" }],
-  "2026-03-25": [{ label: "NVDA 10-K Filing", ticker: "NVDA", type: "report" }],
-  "2026-04-01": [{ label: "TSM Q1 Earnings", ticker: "TSM", type: "earnings" }],
-  "2026-04-08": [{ label: "Samsung Q1 Report", ticker: "SSNLF", type: "report" }],
-};
-
 const eventTypeStyle: Record<string, { color: string; bg: string }> = {
   earnings: { color: "text-yellow-400", bg: "bg-yellow-400/10" },
-  dividend: { color: "text-green-400", bg: "bg-green-400/10" },
-  conference: { color: "text-blue-400", bg: "bg-blue-400/10" },
-  report: { color: "text-purple-400", bg: "bg-purple-400/10" },
 };
 
 function toDateKey(d: Date) {
@@ -58,6 +40,31 @@ export default function DashboardLayout() {
   useEffect(() => {
     setMenuOpen(false);
   }, [location.pathname]);
+
+  // Fetch 3 months of earnings calendar
+  const now = new Date();
+  const from = toDateKey(now);
+  const toDate = new Date(now);
+  toDate.setMonth(toDate.getMonth() + 3);
+  const to = toDateKey(toDate);
+
+  const { data: earningsData, isLoading: calendarLoading } = useFMPEarningsCalendar(from, to);
+
+  // Build events map from live data
+  const financialEvents = useMemo(() => {
+    const map: Record<string, { label: string; ticker: string; type: string }[]> = {};
+    if (!earningsData) return map;
+    for (const ev of earningsData) {
+      if (!ev.date || !ev.symbol) continue;
+      if (!map[ev.date]) map[ev.date] = [];
+      map[ev.date].push({
+        label: `${ev.symbol} Earnings`,
+        ticker: ev.symbol,
+        type: "earnings",
+      });
+    }
+    return map;
+  }, [earningsData]);
 
   const eventDates = Object.keys(financialEvents).map((d) => new Date(d + "T00:00:00"));
   const selectedEvents = selectedDate ? financialEvents[toDateKey(selectedDate)] || [] : [];
@@ -82,7 +89,7 @@ export default function DashboardLayout() {
 
           <div className="ml-auto flex items-center gap-3">
             <ResearchDrawer />
-            <span className="text-xs font-mono text-muted-foreground">MVP • Mock Data</span>
+            <span className="text-xs font-mono text-muted-foreground">Live FMP Data</span>
           </div>
         </div>
 
@@ -104,7 +111,7 @@ export default function DashboardLayout() {
               {/* Financial Calendar */}
               <div className="flex-1 min-w-0">
                 <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 flex items-center gap-1">
-                  <CalendarDays className="h-3 w-3" /> Financial Calendar
+                  <CalendarDays className="h-3 w-3" /> Earnings Calendar
                 </span>
                 <div className="flex gap-4 mt-2">
                   <Calendar
@@ -119,9 +126,13 @@ export default function DashboardLayout() {
                     <p className="text-xs font-medium text-foreground/70">
                       {selectedDate?.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
                     </p>
-                    {selectedEvents.length > 0 ? (
-                      selectedEvents.map((ev, i) => {
-                        const s = eventTypeStyle[ev.type];
+                    {calendarLoading ? (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Loader2 className="h-3 w-3 animate-spin" /> Loading earnings…
+                      </div>
+                    ) : selectedEvents.length > 0 ? (
+                      selectedEvents.slice(0, 8).map((ev, i) => {
+                        const s = eventTypeStyle[ev.type] || eventTypeStyle.earnings;
                         return (
                           <div key={i} className={`flex items-center justify-between rounded-md px-3 py-2 ${s.bg}`}>
                             <div>
@@ -133,7 +144,7 @@ export default function DashboardLayout() {
                         );
                       })
                     ) : (
-                      <p className="text-xs text-muted-foreground">No events scheduled.</p>
+                      <p className="text-xs text-muted-foreground">No earnings scheduled.</p>
                     )}
 
                     {/* Upcoming events */}
@@ -141,11 +152,11 @@ export default function DashboardLayout() {
                       <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Upcoming</p>
                       {Object.entries(financialEvents)
                         .filter(([d]) => new Date(d + "T00:00:00") >= new Date())
-                        .slice(0, 4)
+                        .slice(0, 6)
                         .map(([dateStr, events]) => (
                           <div key={dateStr} className="flex items-center justify-between text-xs py-1">
-                            <span className="text-foreground/80 font-medium">{events[0].label}</span>
-                            <span className="text-muted-foreground font-mono text-[10px]">
+                            <span className="text-foreground/80 font-medium truncate mr-2">{events[0].label}</span>
+                            <span className="text-muted-foreground font-mono text-[10px] shrink-0">
                               {new Date(dateStr + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                             </span>
                           </div>

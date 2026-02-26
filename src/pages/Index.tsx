@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { sectorPerformance, companies, alerts as alertData } from "@/data/companies";
+import { companies, alerts as alertData, categoryLabels } from "@/data/companies";
+import type { CompanyCategory } from "@/data/categories";
 import { TrendingUp, TrendingDown, AlertTriangle, ArrowUpRight, ArrowDownRight, Wifi, WifiOff } from "lucide-react";
 import { SparklineChart } from "@/components/SparklineChart";
 import { Link } from "react-router-dom";
@@ -10,7 +11,23 @@ export default function DashboardHome() {
   const allTickers = useMemo(() => companies.map((c) => c.ticker), []);
   const { data: liveQuotes, isLoading, isError } = useFMPQuotes(allTickers);
 
-  const topMovers = [...companies].sort((a, b) => Math.abs(b.priceChange) - Math.abs(a.priceChange)).slice(0, 5);
+  // Compute sector performance from live quotes
+  const sectorPerf = useMemo(() => {
+    if (!liveQuotes) return [];
+    const sectorMap = new Map<CompanyCategory, number[]>();
+    for (const company of companies) {
+      const change = liveQuotes[company.ticker]?.changePercentage;
+      if (change == null) continue;
+      for (const cat of company.categories) {
+        if (!sectorMap.has(cat)) sectorMap.set(cat, []);
+        sectorMap.get(cat)!.push(change);
+      }
+    }
+    return Array.from(sectorMap.entries()).map(([cat, changes]) => ({
+      name: categoryLabels[cat],
+      change: changes.reduce((a, b) => a + b, 0) / changes.length,
+    }));
+  }, [liveQuotes]);
 
   function getLivePrice(ticker: string, fallback: number): number {
     return liveQuotes?.[ticker]?.price ?? fallback;
@@ -40,11 +57,11 @@ export default function DashboardHome() {
 
       {/* Sector Performance */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-        {sectorPerformance.map((sector) => (
+        {sectorPerf.map((sector) => (
           <Card key={sector.name} className="border-border/50">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">{sector.name}</span>
+                <span className="text-xs text-muted-foreground truncate">{sector.name}</span>
                 {sector.change >= 0 ? (
                   <TrendingUp className="h-4 w-4 text-success" />
                 ) : (
@@ -52,7 +69,7 @@ export default function DashboardHome() {
                 )}
               </div>
               <p className={`text-lg font-mono font-semibold mt-1 ${sector.change >= 0 ? "text-success" : "text-destructive"}`}>
-                {sector.change >= 0 ? "+" : ""}{sector.change}%
+                {sector.change >= 0 ? "+" : ""}{sector.change.toFixed(2)}%
               </p>
             </CardContent>
           </Card>
