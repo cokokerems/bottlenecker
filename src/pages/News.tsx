@@ -86,9 +86,11 @@ export default function News() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
+    const minDelay = new Promise((r) => setTimeout(r, 1000));
     await Promise.all([
       queryClient.refetchQueries({ queryKey: ["fmp-stock-news"] }),
       queryClient.refetchQueries({ queryKey: ["fmp-general-news"] }),
+      minDelay,
     ]);
     setRefreshing(false);
   };
