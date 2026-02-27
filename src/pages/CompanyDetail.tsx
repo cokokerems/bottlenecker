@@ -106,9 +106,8 @@ export default function CompanyDetail() {
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
         .map((p) => ({ day: new Date(p.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }), price: p.close }));
     }
-    if (!company) return [];
-    return company.priceHistory.map((price, i) => ({ day: `D-${30 - i}`, price }));
-  }, [historicalPrices, company]);
+    return [];
+  }, [historicalPrices]);
 
   if (!company || !merged) {
     return <div className="flex items-center justify-center h-64"><p className="text-muted-foreground">Company not found</p></div>;

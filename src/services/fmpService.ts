@@ -52,11 +52,19 @@ export interface FMPKeyMetrics {
   revenuePerShare: number;
 }
 
+export interface FMPCashFlowStatement {
+  capitalExpenditure: number;
+  changeInWorkingCapital: number;
+  freeCashFlow: number;
+  operatingCashFlow: number;
+}
+
 export interface FMPCompanyData {
   quote?: FMPQuote;
   profile?: FMPProfile;
   "income-statement"?: FMPIncomeStatement;
   "balance-sheet-statement"?: FMPBalanceSheet;
+  "cash-flow-statement"?: FMPCashFlowStatement;
   "key-metrics"?: FMPKeyMetrics;
 }
 
@@ -304,9 +312,40 @@ export async function fetchQuotes(tickers: string[]): Promise<Record<string, FMP
 export async function fetchFullCompanyData(ticker: string): Promise<FMPCompanyData> {
   const result = await fetchFMPData(
     [ticker],
-    ["quote", "profile", "income-statement", "balance-sheet-statement", "key-metrics"]
+    ["quote", "profile", "income-statement", "balance-sheet-statement", "cash-flow-statement", "key-metrics"]
   );
   return result[ticker] || {};
+}
+
+export async function fetchBatchSparklines(tickers: string[]): Promise<Record<string, number[]>> {
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now);
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const from = `${thirtyDaysAgo.getFullYear()}-${String(thirtyDaysAgo.getMonth() + 1).padStart(2, "0")}-${String(thirtyDaysAgo.getDate()).padStart(2, "0")}`;
+  const to = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+
+  const results: Record<string, number[]> = {};
+
+  // Fetch in parallel batches of 5
+  const batchSize = 5;
+  for (let i = 0; i < tickers.length; i += batchSize) {
+    const batch = tickers.slice(i, i + batchSize);
+    const promises = batch.map(async (ticker) => {
+      try {
+        const prices = await fetchHistoricalPrices(ticker, from, to);
+        if (prices && prices.length > 0) {
+          results[ticker] = [...prices]
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+            .map((p) => p.close);
+        }
+      } catch {
+        // Skip failures silently
+      }
+    });
+    await Promise.all(promises);
+  }
+
+  return results;
 }
 
 // ── Existing endpoints ──
