@@ -86,8 +86,10 @@ export default function News() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await queryClient.invalidateQueries({ queryKey: ["fmp-stock-news"] });
-    await queryClient.invalidateQueries({ queryKey: ["fmp-general-news"] });
+    await Promise.all([
+      queryClient.refetchQueries({ queryKey: ["fmp-stock-news"] }),
+      queryClient.refetchQueries({ queryKey: ["fmp-general-news"] }),
+    ]);
     setRefreshing(false);
   };
 
