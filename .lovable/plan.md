@@ -1,72 +1,35 @@
 
 
-# Model Selector + Date Fix for AI Research Chat
+# Add Market Indices Banner to Dashboard
 
 ## What Changes
+Add a row of three index/ETF cards at the very top of the dashboard showing live prices and percentage changes.
 
-1. **Three-model selector button** next to the chat input: Gemini 3 Pro, Gemini 3 Flash, and GPT-5.2
-2. **Fix date awareness** so the AI always knows it's 2026 regardless of the question
-3. **Model stored per conversation** and sent to the backend
+## Tickers and Labels
+- **QQQ** -- "Invesco QQQ Trust, Series 1"
+- **SPY** -- "SPDR S&P 500 ETF"
+- **DIA** -- "SPDR Dow Jones ETF"
 
-## Files Modified
+## File Modified: `src/pages/Index.tsx`
 
-### 1. `src/hooks/useResearchChat.ts`
-- Add `model` field to `Conversation` type with type `"google/gemini-3-pro-preview" | "google/gemini-3-flash-preview" | "openai/gpt-5.2"`
-- Default to `"google/gemini-3-pro-preview"`
-- Migrate old conversations without a model field (default them to flash)
-- Pass `model` in the fetch body: `JSON.stringify({ messages: apiMessages, model: activeModel })`
-- Expose `model` (current active conversation's model) and `setModel` function from the hook
-- `setModel` updates the active conversation's model field in state
+1. Define the index tickers as a constant array and merge them with the existing watchlist tickers in the `useFMPQuotes` call so everything fetches in one query
+2. Insert a new 3-column grid row above Sector Performance with one card per index showing:
+   - Ticker + full name (e.g. "QQQ -- Invesco QQQ Trust, Series 1")
+   - Live price in large mono font
+   - Color-coded percentage change with arrow icon
+3. Show a skeleton/pulse state while data is loading
 
-### 2. `src/components/ResearchChat.tsx`
-- Import `Popover`, `PopoverTrigger`, `PopoverContent` from UI components and `ChevronDown` icon
-- Add a model selector button to the **left** of the Textarea in the input bar
-- Button shows short label: "Gemini Pro", "Flash", or "GPT-5.2" with a chevron
-- Clicking opens a Popover with three options, each with a name and brief description:
-  - **Gemini 3 Pro** -- "Deep reasoning, best for complex analysis"
-  - **Gemini 3 Flash** -- "Fast, good for quick questions"
-  - **GPT-5.2** -- "OpenAI's latest, strong reasoning"
-- Selecting a model calls `setModel()` and closes the popover
-- Active model gets a checkmark indicator
-
-### 3. `supabase/functions/ai-research/index.ts`
-- Accept optional `model` field from request body
-- Validate it's one of the three allowed values; default to `"google/gemini-3-pro-preview"` if missing/invalid
-- Use the chosen model in both the tool-calling loop (line 229) and the final streaming call (line 290)
-- **Fix system prompt** (line 186): Replace the date instruction with:
-  ```
-  Today is [YYYY-MM-DD]. The current time is [ISO timestamp] UTC. The year is [YYYY]. 
-  ALWAYS use this as your reference for "today", "current", "latest", "recent", and any 
-  time-relative language. Your training data may be outdated -- never assume the current 
-  year or date from your training knowledge.
-  ```
-  This makes date awareness unconditional so the model knows it's 2026 for every query, not just when asked "what time is it?"
-
-## Input Bar Layout
+## Layout
 
 ```text
-[ Model Button v ] [ Textarea ............................... ] [ Send ]
+[ QQQ                 ] [ SPY                ] [ DIA                 ]
+[ Invesco QQQ Trust   ] [ SPDR S&P 500 ETF   ] [ SPDR Dow Jones ETF  ]
+[ $523.45   +1.24%    ] [ $598.12   -0.31%   ] [ $425.80   +0.52%   ]
+
+[ Sector Performance cards... ]
+[ Watchlist + Alerts grid...  ]
 ```
 
-## Technical Details
-
-**Allowed models (validated server-side):**
-- `google/gemini-3-pro-preview` (default)
-- `google/gemini-3-flash-preview`
-- `openai/gpt-5.2`
-
-**Conversation type update:**
-```text
-Conversation {
-  id, title, messages, createdAt, updatedAt,
-  model: "google/gemini-3-pro-preview" | "google/gemini-3-flash-preview" | "openai/gpt-5.2"
-}
-```
-
-**Edge function request body:**
-```text
-{ messages: [...], model?: string }
-```
-
-**Edge function model usage:** The `model` field from the request replaces the hardcoded `"google/gemini-3-flash-preview"` in both the tool-calling `fetch` call and the final streaming `fetch` call.
+## No New Files
+All changes in `src/pages/Index.tsx`. Reuses existing `useFMPQuotes` hook and `getLivePrice`/`getLiveChange` helpers.
 
