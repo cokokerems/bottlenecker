@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useFMPStockNews, useFMPGeneralNews, useFMPInsiderTrades, useFMPSenateTrades, useFMPHouseTrades } from "@/hooks/useFMPData";
 import { useQueryClient } from "@tanstack/react-query";
+import { forceBypassFmpCache } from "@/services/fmpService";
 
 function HeadlineTicker() {
   const tickerRef = useRef<HTMLDivElement>(null);
@@ -86,10 +87,14 @@ export default function News() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
+    forceBypassFmpCache(15_000);
     const minDelay = new Promise((r) => setTimeout(r, 1000));
     await Promise.all([
       queryClient.refetchQueries({ queryKey: ["fmp-stock-news"] }),
       queryClient.refetchQueries({ queryKey: ["fmp-general-news"] }),
+      queryClient.refetchQueries({ queryKey: ["fmp-insider-trades"] }),
+      queryClient.refetchQueries({ queryKey: ["fmp-senate-trades"] }),
+      queryClient.refetchQueries({ queryKey: ["fmp-house-trades"] }),
       minDelay,
     ]);
     setRefreshing(false);
