@@ -358,6 +358,15 @@ export async function fetchStockNews(tickers?: string[], limit = 20): Promise<FM
   return fmpGeneric<FMPStockNews[]>("/news/stock-latest", params);
 }
 
+export async function fetchGeneralNews(limit = 20): Promise<FMPStockNews[]> {
+  const data = await fmpGeneric<{ content?: FMPStockNews[] } | FMPStockNews[]>("/fmp/articles", { page: "0", size: String(limit) }, true);
+  // FMP v3 /fmp/articles returns { content: [...] } or just an array
+  if (data && typeof data === "object" && "content" in data && Array.isArray((data as any).content)) {
+    return (data as any).content;
+  }
+  return Array.isArray(data) ? data : [];
+}
+
 export async function fetchInsiderTrades(limit = 20): Promise<FMPInsiderTrade[]> {
   return fmpGeneric<FMPInsiderTrade[]>("/insider-trading/latest", { limit: String(limit) });
 }
