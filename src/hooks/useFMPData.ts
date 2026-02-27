@@ -69,7 +69,8 @@ export function useFMPStockNews(tickers?: string[], limit = 20) {
   return useQuery<FMPStockNews[]>({
     queryKey: ["fmp-stock-news", tickers, limit],
     queryFn: () => fetchStockNews(tickers, limit),
-    staleTime: 3 * 60 * 1000,
+    staleTime: 2 * 60 * 1000,
+    refetchInterval: 2 * 60 * 1000,
     retry: 1,
   });
 }
@@ -78,7 +79,8 @@ export function useFMPGeneralNews(limit = 20) {
   return useQuery<FMPStockNews[]>({
     queryKey: ["fmp-general-news", limit],
     queryFn: () => fetchGeneralNews(limit),
-    staleTime: 3 * 60 * 1000,
+    staleTime: 2 * 60 * 1000,
+    refetchInterval: 2 * 60 * 1000,
     retry: 1,
   });
 }
