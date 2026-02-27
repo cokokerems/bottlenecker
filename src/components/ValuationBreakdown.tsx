@@ -49,29 +49,41 @@ export default function ValuationBreakdown({ company, liveData, dcf }: Valuation
   const v = valuationData[company.id];
   if (!v) return null;
 
-  // Use live data when available, fall back to mock
+  // Use live data when available, fall back to curated model inputs
   const inc = liveData?.["income-statement"];
   const bs = liveData?.["balance-sheet-statement"];
+  const cf = liveData?.["cash-flow-statement"];
   const isLive = !!(inc || bs);
 
   const ebitda = inc?.ebitda ? inc.ebitda / 1e9 : v.ebitda;
   const ebit = inc?.operatingIncome ? inc.operatingIncome / 1e9 : v.ebit;
   const depreciation = inc?.depreciationAndAmortization ? inc.depreciationAndAmortization / 1e9 : v.depreciation;
+  const capex = cf?.capitalExpenditure ? Math.abs(cf.capitalExpenditure) / 1e9 : v.capex;
+  const changeInWC = cf?.changeInWorkingCapital ? cf.changeInWorkingCapital / 1e9 : v.changeInWorkingCapital;
+
+  // Use live balance sheet for EV calc when available
+  const totalDebt = bs?.totalDebt ? bs.totalDebt / 1e9 : company.totalDebt;
+  const cash = bs?.cashAndCashEquivalents ? bs.cashAndCashEquivalents / 1e9 : company.cashAndEquivalents;
+  const mi = bs?.minorityInterest ? bs.minorityInterest / 1e9 : company.minorityInterest;
+  const mktCap = liveData?.quote?.marketCap ? liveData.quote.marketCap / 1e9 : company.marketCap;
+  const curPrice = liveData?.quote?.price ?? company.currentPrice;
+  const revenue = inc?.revenue ? inc.revenue / 1e9 : company.revenue;
+  const earnings = inc?.netIncome ? inc.netIncome / 1e9 : company.earnings;
 
   // 1. Enterprise Value
-  const ev = company.marketCap + company.totalDebt + (company.preferredStock ?? 0) + company.minorityInterest - company.cashAndEquivalents;
+  const ev = mktCap + totalDebt + (company.preferredStock ?? 0) + mi - cash;
   // 2. Equity Value
-  const equityValue = company.currentPrice * v.sharesOutstanding;
+  const equityValue = curPrice * v.sharesOutstanding;
   // 3. Takeover Premium
-  const offerPrice = company.currentPrice * (1 + v.offerPremium);
+  const offerPrice = curPrice * (1 + v.offerPremium);
   // 4. EV/EBITDA
   const evEbitda = ev / ebitda;
   // 5. EV/Revenue
-  const evRevenue = ev / company.revenue;
+  const evRevenue = ev / revenue;
   // 6. P/E
-  const pe = company.earnings !== 0 ? equityValue / company.earnings : NaN;
+  const pe = earnings !== 0 ? equityValue / earnings : NaN;
   // 7. FCF
-  const fcf = ebit * (1 - v.taxRate) + depreciation - v.capex - v.changeInWorkingCapital;
+  const fcf = ebit * (1 - v.taxRate) + depreciation - capex - changeInWC;
   // 8. DCF
   const pvFCF = v.projectedFCF.reduce((sum, f, i) => sum + f / Math.pow(1 + v.wacc, i + 1), 0);
   // 9. Terminal Value (Gordon)
@@ -84,8 +96,8 @@ export default function ValuationBreakdown({ company, liveData, dcf }: Valuation
   const dcfExit = pvFCF + pvTvExit;
   // 11. WACC
   const eV = equityValue;
-  const totalV = eV + company.totalDebt;
-  const waccCalc = (eV / totalV) * v.costOfEquity + (company.totalDebt / totalV) * v.costOfDebt * (1 - v.taxRate);
+  const totalV = eV + totalDebt;
+  const waccCalc = (eV / totalV) * v.costOfEquity + (totalDebt / totalV) * v.costOfDebt * (1 - v.taxRate);
   // 12. Synergy
   const synergy = (v.costSynergies + v.revenueSynergies) / v.synergyDiscountRate;
   // 13. Accretion/Dilution
@@ -122,10 +134,10 @@ export default function ValuationBreakdown({ company, liveData, dcf }: Valuation
         {/* EV & Equity */}
         <SectionCard icon={DollarSign} title="Enterprise & Equity Value" badge="Formulas 1-2">
           <FormulaRow label="Market Capitalization" formula="Share Price × Diluted Shares" value={`$${fmt(equityValue)}B`} />
-          <FormulaRow label="+ Total Debt" formula="" value={`$${fmt(company.totalDebt)}B`} />
+          <FormulaRow label="+ Total Debt" formula="" value={`$${fmt(totalDebt)}B`} />
           <FormulaRow label="+ Preferred Stock" formula="" value={`$${fmt(company.preferredStock ?? 0)}B`} />
-          <FormulaRow label="+ Minority Interest" formula="" value={`$${fmt(company.minorityInterest)}B`} />
-          <FormulaRow label="− Cash & Equivalents" formula="" value={`$${fmt(company.cashAndEquivalents)}B`} />
+          <FormulaRow label="+ Minority Interest" formula="" value={`$${fmt(mi)}B`} />
+          <FormulaRow label="− Cash & Equivalents" formula="" value={`$${fmt(cash)}B`} />
           <Separator className="my-1" />
           <FormulaRow label="Enterprise Value (EV)" formula="EV = Equity + Debt + Pref + MI − Cash" value={`$${fmt(ev)}B`} highlight />
         </SectionCard>
@@ -133,8 +145,8 @@ export default function ValuationBreakdown({ company, liveData, dcf }: Valuation
         {/* Multiples */}
         <SectionCard icon={BarChart3} title="Valuation Multiples" badge="Formulas 4-6">
           <FormulaRow label="EV / EBITDA" formula={`$${fmt(ev)}B / $${fmt(ebitda)}B`} value={`${fmt(evEbitda)}x`} />
-          <FormulaRow label="EV / Revenue" formula={`$${fmt(ev)}B / $${fmt(company.revenue)}B`} value={`${fmt(evRevenue)}x`} />
-          <FormulaRow label="P/E Ratio" formula={`$${fmt(equityValue)}B / $${fmt(company.earnings)}B`} value={isNaN(pe) ? "N/A" : `${fmt(pe)}x`} />
+          <FormulaRow label="EV / Revenue" formula={`$${fmt(ev)}B / $${fmt(revenue)}B`} value={`${fmt(evRevenue)}x`} />
+          <FormulaRow label="P/E Ratio" formula={`$${fmt(equityValue)}B / $${fmt(earnings)}B`} value={isNaN(pe) ? "N/A" : `${fmt(pe)}x`} />
           <Separator className="my-1" />
           <FormulaRow label="EBITDA" formula="Earnings Before Interest, Taxes, Depr. & Amort." value={`$${fmt(ebitda)}B`} />
         </SectionCard>
@@ -143,8 +155,8 @@ export default function ValuationBreakdown({ company, liveData, dcf }: Valuation
         <SectionCard icon={Calculator} title="DCF Valuation" badge="Formulas 7-10">
           <FormulaRow label="EBIT × (1 − Tax)" formula={`$${fmt(ebit)}B × (1 − ${pct(v.taxRate)})`} value={`$${fmt(ebit * (1 - v.taxRate))}B`} />
           <FormulaRow label="+ Depreciation" formula="" value={`$${fmt(depreciation)}B`} />
-          <FormulaRow label="− CapEx" formula="" value={`$${fmt(v.capex)}B`} />
-          <FormulaRow label="− ΔWC" formula="" value={`$${fmt(v.changeInWorkingCapital)}B`} />
+          <FormulaRow label="− CapEx" formula="" value={`$${fmt(capex)}B`} />
+          <FormulaRow label="− ΔWC" formula="" value={`$${fmt(changeInWC)}B`} />
           <Separator className="my-1" />
           <FormulaRow label="Free Cash Flow (FCF)" formula="EBIT(1−T) + D&A − CapEx − ΔWC" value={`$${fmt(fcf)}B`} highlight />
           <div className="mt-2" />
@@ -164,7 +176,7 @@ export default function ValuationBreakdown({ company, liveData, dcf }: Valuation
           <FormulaRow label="Cost of Equity (Re)" formula="CAPM-derived" value={pct(v.costOfEquity)} />
           <FormulaRow label="Cost of Debt (Rd)" formula="After-tax" value={pct(v.costOfDebt)} />
           <FormulaRow label="Equity Weight (E/V)" formula={`$${fmt(eV)}B / $${fmt(totalV)}B`} value={pct(eV / totalV)} />
-          <FormulaRow label="Debt Weight (D/V)" formula={`$${fmt(company.totalDebt)}B / $${fmt(totalV)}B`} value={pct(company.totalDebt / totalV)} />
+          <FormulaRow label="Debt Weight (D/V)" formula={`$${fmt(totalDebt)}B / $${fmt(totalV)}B`} value={pct(totalDebt / totalV)} />
           <FormulaRow label="Tax Rate" formula="" value={pct(v.taxRate)} />
           <Separator className="my-1" />
           <FormulaRow label="WACC" formula="(E/V)×Re + (D/V)×Rd×(1−T)" value={pct(waccCalc)} highlight />
@@ -172,9 +184,9 @@ export default function ValuationBreakdown({ company, liveData, dcf }: Valuation
 
         {/* Takeover & Synergies */}
         <SectionCard icon={Zap} title="Takeover Analysis" badge="Formulas 3, 12-13">
-          <FormulaRow label="Current Share Price" formula="" value={`$${company.currentPrice.toFixed(2)}`} />
+          <FormulaRow label="Current Share Price" formula="" value={`$${curPrice.toFixed(2)}`} />
           <FormulaRow label="Takeover Premium" formula={`(Offer − Current) / Current`} value={pct(v.offerPremium)} />
-          <FormulaRow label="Implied Offer Price" formula={`$${company.currentPrice.toFixed(2)} × (1 + ${pct(v.offerPremium)})`} value={`$${offerPrice.toFixed(2)}`} highlight />
+          <FormulaRow label="Implied Offer Price" formula={`$${curPrice.toFixed(2)} × (1 + ${pct(v.offerPremium)})`} value={`$${offerPrice.toFixed(2)}`} highlight />
           <Separator className="my-1" />
           <FormulaRow label="Cost Synergies" formula="PV of annual cost savings" value={`$${fmt(v.costSynergies)}B/yr`} />
           <FormulaRow label="Revenue Synergies" formula="PV of revenue uplift" value={`$${fmt(v.revenueSynergies)}B/yr`} />

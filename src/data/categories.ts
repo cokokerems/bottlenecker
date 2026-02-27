@@ -60,23 +60,3 @@ export const categoryColors: Record<CompanyCategory, string> = {
   "base-materials": "hsl(25, 55%, 45%)",
 };
 
-export const sectorPerformance = [
-  { name: "Chip Design", change: 0.9, color: categoryColors["chip-designers"] },
-  { name: "Chip IP", change: 1.2, color: categoryColors["chip-ip"] },
-  { name: "EDA", change: 0.4, color: categoryColors["eda"] },
-  { name: "Foundries", change: 1.5, color: categoryColors["foundries"] },
-  { name: "Memory", change: -0.8, color: categoryColors["memory"] },
-  { name: "Semi Equip", change: 0.2, color: categoryColors["semi-equipment"] },
-  { name: "Packaging", change: -0.3, color: categoryColors["packaging-assembly"] },
-  { name: "Substrates", change: 0.1, color: categoryColors["substrates-pcb"] },
-  { name: "Materials", change: 0.3, color: categoryColors["semi-materials"] },
-  { name: "Optical", change: 1.8, color: categoryColors["optical-transceivers"] },
-  { name: "Networking", change: 1.1, color: categoryColors["networking"] },
-  { name: "Server OEM", change: -1.2, color: categoryColors["server-oem"] },
-  { name: "Power/Cool", change: 2.1, color: categoryColors["dc-power-cooling"] },
-  { name: "DC Build", change: 0.7, color: categoryColors["dc-construction"] },
-  { name: "Hyperscale", change: 0.5, color: categoryColors["hyperscalers"] },
-  { name: "DC REITs", change: -0.4, color: categoryColors["dc-reits"] },
-  { name: "Power Grid", change: 1.3, color: categoryColors["power-grid"] },
-  { name: "Materials", change: -0.6, color: categoryColors["base-materials"] },
-];

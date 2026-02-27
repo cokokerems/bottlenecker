@@ -21,6 +21,7 @@ import {
   fetchDividendCalendar,
   fetchStockSplitCalendar,
   fetchTickerSearch,
+  fetchBatchSparklines,
   type FMPQuote,
   type FMPCompanyData,
   type FMPStockNews,
@@ -246,6 +247,16 @@ export function useFMPTickerSearch(query: string, limit = 10) {
     queryFn: () => fetchTickerSearch(query, limit),
     staleTime: 5 * 60 * 1000,
     enabled: query.length >= 1,
+    retry: 1,
+  });
+}
+
+export function useFMPSparklines(tickers: string[]) {
+  return useQuery<Record<string, number[]>>({
+    queryKey: ["fmp-sparklines", ...tickers],
+    queryFn: () => fetchBatchSparklines(tickers),
+    staleTime: 10 * 60 * 1000,
+    enabled: tickers.length > 0,
     retry: 1,
   });
 }
