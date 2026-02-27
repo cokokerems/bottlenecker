@@ -39,9 +39,23 @@ async function fmpFetch(
   }
 
   const base = useV3 ? FMP_BASE_V3 : FMP_BASE_STABLE;
-  const searchParams = new URLSearchParams({ ...params, apikey: apiKey });
+  const requestParams: Record<string, string> = { ...params, apikey: apiKey };
+
+  // Add a nonce on manual refresh to avoid intermediary CDN/cache replay upstream.
+  if (noCache) {
+    requestParams._ = String(Date.now());
+  }
+
+  const searchParams = new URLSearchParams(requestParams);
   const url = `${base}${path}?${searchParams}`;
-  const res = await fetch(url);
+  const res = await fetch(url, {
+    headers: noCache
+      ? {
+          "Cache-Control": "no-cache, no-store, max-age=0",
+          Pragma: "no-cache",
+        }
+      : undefined,
+  });
   if (!res.ok) {
     const body = await res.text();
     console.error(`FMP ${res.status} for ${path}: ${body.slice(0, 200)}`);
