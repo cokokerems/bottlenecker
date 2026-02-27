@@ -5,9 +5,19 @@ import { SparklineChart } from "@/components/SparklineChart";
 import { Link } from "react-router-dom";
 import { useFMPQuotes, useFMPSectorPerformance } from "@/hooks/useFMPData";
 import { useMemo } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
+
+const INDEX_TICKERS = [
+  { ticker: "QQQ", name: "Invesco QQQ Trust, Series 1" },
+  { ticker: "SPY", name: "SPDR S&P 500 ETF" },
+  { ticker: "DIA", name: "SPDR Dow Jones ETF" },
+];
 
 export default function DashboardHome() {
-  const allTickers = useMemo(() => companies.map((c) => c.ticker), []);
+  const allTickers = useMemo(
+    () => [...INDEX_TICKERS.map((i) => i.ticker), ...companies.map((c) => c.ticker)],
+    []
+  );
   const { data: liveQuotes, isLoading, isError } = useFMPQuotes(allTickers);
   const { data: sectorData } = useFMPSectorPerformance();
 
@@ -43,6 +53,50 @@ export default function DashboardHome() {
             <><Wifi className="h-3 w-3 text-success" /> <span>Live</span></>
           )}
         </div>
+      </div>
+
+      {/* Market Indices */}
+      <div className="grid grid-cols-3 gap-4">
+        {INDEX_TICKERS.map((idx) => {
+          const price = liveQuotes?.[idx.ticker]?.price;
+          const change = liveQuotes?.[idx.ticker]?.changePercentage;
+          const isPositive = (change ?? 0) >= 0;
+
+          return (
+            <Card key={idx.ticker} className="border-border/50">
+              <CardContent className="p-5">
+                {isLoading || price == null ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-7 w-32" />
+                    <Skeleton className="h-4 w-16" />
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold">{idx.ticker}</span>
+                      {isPositive ? (
+                        <ArrowUpRight className="h-4 w-4 text-success" />
+                      ) : (
+                        <ArrowDownRight className="h-4 w-4 text-destructive" />
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">{idx.name}</p>
+                    <div className="flex items-baseline gap-3 mt-2">
+                      <span className="text-xl font-mono font-bold">${price.toFixed(2)}</span>
+                      <span
+                        className={`text-sm font-mono font-medium ${isPositive ? "text-success" : "text-destructive"}`}
+                      >
+                        {isPositive ? "+" : ""}
+                        {(change ?? 0).toFixed(2)}%
+                      </span>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       {/* Sector Performance */}
