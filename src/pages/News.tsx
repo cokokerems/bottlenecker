@@ -1,13 +1,21 @@
-import { useRef, useState } from "react";
-import { ExternalLink, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Minus, Loader2, Landmark } from "lucide-react";
+import { useRef, useState, useMemo } from "react";
+import { ExternalLink, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Minus, Loader2, Landmark, RefreshCw } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useFMPStockNews, useFMPInsiderTrades, useFMPSenateTrades, useFMPHouseTrades } from "@/hooks/useFMPData";
+import { Button } from "@/components/ui/button";
+import { useFMPStockNews, useFMPGeneralNews, useFMPInsiderTrades, useFMPSenateTrades, useFMPHouseTrades } from "@/hooks/useFMPData";
+import { useQueryClient } from "@tanstack/react-query";
 
 function HeadlineTicker() {
   const tickerRef = useRef<HTMLDivElement>(null);
-  const { data: news } = useFMPStockNews(undefined, 15);
-  const headlines = news?.map((n) => `${n.symbol}: ${n.title}`) ?? ["Loading latest headlines…"];
+  const { data: stockNews } = useFMPStockNews(undefined, 15);
+  const { data: generalNews } = useFMPGeneralNews(10);
+  const allNews = [...(stockNews || []), ...(generalNews || [])].sort(
+    (a, b) => new Date(b.publishedDate).getTime() - new Date(a.publishedDate).getTime()
+  );
+  const headlines = allNews.length > 0
+    ? allNews.slice(0, 20).map((n) => `${n.symbol ? n.symbol + ": " : ""}${n.title}`)
+    : ["Loading latest headlines…"];
 
   return (
     <div className="relative overflow-hidden border-b border-border bg-card/50 backdrop-blur-sm">
@@ -53,11 +61,37 @@ function timeAgo(dateStr: string) {
 type RightTab = "insider" | "congress";
 
 export default function News() {
+  const queryClient = useQueryClient();
   const { data: newsArticles, isLoading: newsLoading } = useFMPStockNews(undefined, 25);
+  const { data: generalNews, isLoading: generalLoading } = useFMPGeneralNews(25);
   const { data: insiderTrades, isLoading: tradesLoading } = useFMPInsiderTrades(15);
   const { data: senateTrades, isLoading: senateLoading } = useFMPSenateTrades(15);
   const { data: houseTrades, isLoading: houseLoading } = useFMPHouseTrades(15);
   const [rightTab, setRightTab] = useState<RightTab>("insider");
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Merge stock news + general news, deduplicate by title, sort by date
+  const mergedNews = useMemo(() => {
+    const all = [...(newsArticles || []), ...(generalNews || [])];
+    const seen = new Set<string>();
+    const deduped = all.filter((a) => {
+      const key = a.title?.toLowerCase().trim();
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    deduped.sort((a, b) => new Date(b.publishedDate).getTime() - new Date(a.publishedDate).getTime());
+    return deduped;
+  }, [newsArticles, generalNews]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await queryClient.invalidateQueries({ queryKey: ["fmp-stock-news"] });
+    await queryClient.invalidateQueries({ queryKey: ["fmp-general-news"] });
+    setRefreshing(false);
+  };
+
+  const allNewsLoading = newsLoading && generalLoading;
 
   const congressTrades = [
     ...(senateTrades?.map((t) => ({ ...t, chamber: "Senate" as const })) || []),
@@ -70,13 +104,20 @@ export default function News() {
       <div className="flex gap-0 min-h-[calc(100vh-7.5rem)]">
         {/* News Feed — 70% */}
         <div className="w-[70%] border-r border-border p-6 space-y-4 overflow-y-auto">
-          <h2 className="text-lg font-semibold text-foreground tracking-tight mb-4">Latest News</h2>
-          {newsLoading ? (
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-foreground tracking-tight">Latest News</h2>
+            <Button variant="ghost" size="sm" onClick={handleRefresh} disabled={refreshing} className="text-xs gap-1.5">
+              <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} /> Refresh
+            </Button>
+          </div>
+          {allNewsLoading ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground py-8 justify-center">
               <Loader2 className="h-4 w-4 animate-spin" /> Loading live news…
             </div>
+          ) : mergedNews.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">No news articles found</p>
           ) : (
-            newsArticles?.map((article, idx) => {
+            mergedNews.map((article, idx) => {
               const sentiment = deriveSentiment(article.sentimentScore);
               const sent = sentimentConfig[sentiment];
               const SentIcon = sent.icon;
