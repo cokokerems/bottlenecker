@@ -260,13 +260,33 @@ function setCacheLocal(key: string, data: unknown) {
 }
 
 // ── Generic FMP passthrough ──
-async function fmpGeneric<T>(path: string, params: Record<string, string> = {}, v3 = false): Promise<T> {
+interface FmpGenericOptions {
+  v3?: boolean;
+  noCache?: boolean;
+}
+
+let forceNoCacheUntil = 0;
+
+export function forceBypassFmpCache(durationMs = 10_000) {
+  forceNoCacheUntil = Date.now() + durationMs;
+}
+
+async function fmpGeneric<T>(
+  path: string,
+  params: Record<string, string> = {},
+  options: FmpGenericOptions = {}
+): Promise<T> {
+  const { v3 = false, noCache = false } = options;
+  const shouldBypassCache = noCache || Date.now() < forceNoCacheUntil;
   const cacheKey = `generic:${v3 ? "v3:" : ""}${path}|${JSON.stringify(params)}`;
-  const cached = getCachedLocal<T>(cacheKey);
-  if (cached) return cached;
+
+  if (!shouldBypassCache) {
+    const cached = getCachedLocal<T>(cacheKey);
+    if (cached) return cached;
+  }
 
   const { data, error } = await supabase.functions.invoke("fmp-proxy", {
-    body: { path, params, v3 },
+    body: { path, params, v3, noCache: shouldBypassCache },
   });
 
   if (error) {
@@ -274,7 +294,10 @@ async function fmpGeneric<T>(path: string, params: Record<string, string> = {}, 
     throw error;
   }
 
-  setCacheLocal(cacheKey, data);
+  if (!shouldBypassCache) {
+    setCacheLocal(cacheKey, data);
+  }
+
   return data as T;
 }
 
@@ -359,11 +382,10 @@ export async function fetchStockNews(tickers?: string[], limit = 20): Promise<FM
 }
 
 export async function fetchGeneralNews(limit = 20): Promise<FMPStockNews[]> {
-  const data = await fmpGeneric<{ content?: FMPStockNews[] } | FMPStockNews[]>("/fmp/articles", { page: "0", size: String(limit) }, true);
-  // FMP v3 /fmp/articles returns { content: [...] } or just an array
-  if (data && typeof data === "object" && "content" in data && Array.isArray((data as any).content)) {
-    return (data as any).content;
-  }
+  const data = await fmpGeneric<FMPStockNews[]>(
+    "/news/general-latest",
+    { limit: String(limit), page: "0" }
+  );
   return Array.isArray(data) ? data : [];
 }
 
@@ -376,7 +398,7 @@ export async function fetchEarningsCalendar(from: string, to: string): Promise<F
 }
 
 export async function fetchSectorPerformance(): Promise<FMPSectorPerformance[]> {
-  return fmpGeneric<FMPSectorPerformance[]>("/sector-performance", {}, true);
+  return fmpGeneric<FMPSectorPerformance[]>("/sector-performance", {}, { v3: true });
 }
 
 export async function fetchHistoricalPrices(ticker: string, from: string, to: string): Promise<FMPHistoricalPrice[]> {

@@ -24,10 +24,19 @@ function setCache(key: string, data: unknown) {
   cache.set(key, { data, ts: Date.now() });
 }
 
-async function fmpFetch(path: string, params: Record<string, string>, apiKey: string, useV3 = false): Promise<unknown> {
+async function fmpFetch(
+  path: string,
+  params: Record<string, string>,
+  apiKey: string,
+  useV3 = false,
+  noCache = false
+): Promise<unknown> {
   const cacheKey = (useV3 ? "v3:" : "") + path + JSON.stringify(params);
-  const cached = getCached(cacheKey);
-  if (cached) return cached;
+
+  if (!noCache) {
+    const cached = getCached(cacheKey);
+    if (cached) return cached;
+  }
 
   const base = useV3 ? FMP_BASE_V3 : FMP_BASE_STABLE;
   const searchParams = new URLSearchParams({ ...params, apikey: apiKey });
@@ -39,7 +48,7 @@ async function fmpFetch(path: string, params: Record<string, string>, apiKey: st
     return null;
   }
   const data = await res.json();
-  setCache(cacheKey, data);
+  if (!noCache) setCache(cacheKey, data);
   return data;
 }
 
@@ -77,7 +86,8 @@ serve(async (req) => {
     if (body.path) {
       const params: Record<string, string> = body.params || {};
       const useV3 = body.v3 === true;
-      const data = await fmpFetch(body.path, params, apiKey, useV3);
+      const noCache = body.noCache === true;
+      const data = await fmpFetch(body.path, params, apiKey, useV3, noCache);
       return new Response(JSON.stringify(data ?? []), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -85,6 +95,7 @@ serve(async (req) => {
 
     // ── Mode 2: Multi-ticker/multi-endpoint batch (original) ──
     const { tickers, endpoints } = body;
+    const noCache = body.noCache === true;
 
     if (!tickers || !Array.isArray(tickers) || tickers.length === 0) {
       return new Response(JSON.stringify({ error: "tickers array or path required" }), {
@@ -109,7 +120,7 @@ serve(async (req) => {
             params.limit = "1";
           }
 
-          const data = await fmpFetch(`/${endpoint}`, params, apiKey);
+          const data = await fmpFetch(`/${endpoint}`, params, apiKey, false, noCache);
           if (data) {
             if (!results[ticker]) results[ticker] = {};
             if (Array.isArray(data)) {
