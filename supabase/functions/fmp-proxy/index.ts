@@ -10,12 +10,23 @@ const FMP_BASE_STABLE = "https://financialmodelingprep.com/stable";
 const FMP_BASE_V3 = "https://financialmodelingprep.com/api/v3";
 const CONCURRENCY = 3;
 
-const cache = new Map<string, { data: unknown; ts: number }>();
-const CACHE_TTL_MS = 5 * 60 * 1000;
+// ── Per-endpoint cache TTL ──
+const SHORT_TTL_MS = 45 * 1000; // 45s for live feeds
+const DEFAULT_TTL_MS = 5 * 60 * 1000; // 5min for everything else
 
-function getCached(key: string): unknown | null {
+const SHORT_TTL_PATHS = new Set([
+  "/news/stock-latest",
+  "/news/general-latest",
+  "/insider-trading/latest",
+  "/senate-latest",
+  "/house-latest",
+]);
+
+const cache = new Map<string, { data: unknown; ts: number }>();
+
+function getCached(key: string, ttl: number): unknown | null {
   const entry = cache.get(key);
-  if (entry && Date.now() - entry.ts < CACHE_TTL_MS) return entry.data;
+  if (entry && Date.now() - entry.ts < ttl) return entry.data;
   cache.delete(key);
   return null;
 }
@@ -32,9 +43,10 @@ async function fmpFetch(
   noCache = false
 ): Promise<unknown> {
   const cacheKey = (useV3 ? "v3:" : "") + path + JSON.stringify(params);
+  const ttl = SHORT_TTL_PATHS.has(path) ? SHORT_TTL_MS : DEFAULT_TTL_MS;
 
   if (!noCache) {
-    const cached = getCached(cacheKey);
+    const cached = getCached(cacheKey, ttl);
     if (cached) return cached;
   }
 

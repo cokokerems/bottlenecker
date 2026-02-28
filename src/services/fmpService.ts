@@ -259,6 +259,16 @@ function setCacheLocal(key: string, data: unknown) {
   localCache.set(key, { data, ts: Date.now() });
 }
 
+// ── Paths that should NEVER use the local in-memory cache ──
+// React Query already caches these; the extra Map layer makes refresh unreliable.
+const NO_LOCAL_CACHE_PATHS = new Set([
+  "/news/stock-latest",
+  "/news/general-latest",
+  "/insider-trading/latest",
+  "/senate-latest",
+  "/house-latest",
+]);
+
 // ── Generic FMP passthrough ──
 interface FmpGenericOptions {
   v3?: boolean;
@@ -278,9 +288,10 @@ async function fmpGeneric<T>(
 ): Promise<T> {
   const { v3 = false, noCache = false } = options;
   const shouldBypassCache = noCache || Date.now() < forceNoCacheUntil;
+  const skipLocalCache = NO_LOCAL_CACHE_PATHS.has(path) || shouldBypassCache;
   const cacheKey = `generic:${v3 ? "v3:" : ""}${path}|${JSON.stringify(params)}`;
 
-  if (!shouldBypassCache) {
+  if (!skipLocalCache) {
     const cached = getCachedLocal<T>(cacheKey);
     if (cached) return cached;
   }
@@ -294,7 +305,7 @@ async function fmpGeneric<T>(
     throw error;
   }
 
-  if (!shouldBypassCache) {
+  if (!skipLocalCache) {
     setCacheLocal(cacheKey, data);
   }
 
@@ -349,7 +360,6 @@ export async function fetchBatchSparklines(tickers: string[]): Promise<Record<st
 
   const results: Record<string, number[]> = {};
 
-  // Fetch in parallel batches of 5
   const batchSize = 5;
   for (let i = 0; i < tickers.length; i += batchSize) {
     const batch = tickers.slice(i, i + batchSize);
