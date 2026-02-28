@@ -1,11 +1,24 @@
-import { useRef, useState, useMemo } from "react";
-import { ExternalLink, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Minus, Loader2, Landmark, RefreshCw } from "lucide-react";
+import { useRef, useState, useMemo, useCallback } from "react";
+import { ExternalLink, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Minus, Loader2, Landmark, RefreshCw, CheckCircle2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useFMPStockNews, useFMPGeneralNews, useFMPInsiderTrades, useFMPSenateTrades, useFMPHouseTrades } from "@/hooks/useFMPData";
 import { useQueryClient } from "@tanstack/react-query";
 import { forceBypassFmpCache } from "@/services/fmpService";
+import type { FMPStockNews, FMPInsiderTrade, FMPCongressionalTrade } from "@/services/fmpService";
+
+// ── Helpers ──
+
+function newsId(a: FMPStockNews): string {
+  return a.url || `${a.title}|${a.publishedDate}`;
+}
+function insiderId(t: FMPInsiderTrade): string {
+  return `${t.link}|${t.transactionDate}|${t.symbol}`;
+}
+function congressId(t: FMPCongressionalTrade): string {
+  return `${t.link}|${t.transactionDate}|${t.ticker}`;
+}
 
 function HeadlineTicker() {
   const tickerRef = useRef<HTMLDivElement>(null);
@@ -59,6 +72,10 @@ function timeAgo(dateStr: string) {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
+function formatTime(d: Date) {
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+}
+
 type RightTab = "insider" | "congress";
 
 export default function News() {
@@ -70,6 +87,15 @@ export default function News() {
   const { data: houseTrades, isLoading: houseLoading } = useFMPHouseTrades(15);
   const [rightTab, setRightTab] = useState<RightTab>("insider");
   const [refreshing, setRefreshing] = useState(false);
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+  const [refreshResult, setRefreshResult] = useState<string | null>(null);
+
+  // Keep previous snapshot IDs for diffing
+  const prevSnapshotRef = useRef<{
+    news: Set<string>;
+    insider: Set<string>;
+    congress: Set<string>;
+  } | null>(null);
 
   // Merge stock news + general news, deduplicate by title, sort by date
   const mergedNews = useMemo(() => {
@@ -85,27 +111,84 @@ export default function News() {
     return deduped;
   }, [newsArticles, generalNews]);
 
+  const congressTrades = useMemo(() => [
+    ...(senateTrades?.map((t) => ({ ...t, chamber: "Senate" as const })) || []),
+    ...(houseTrades?.map((t) => ({ ...t, chamber: "House" as const })) || []),
+  ].sort((a, b) => new Date(b.transactionDate).getTime() - new Date(a.transactionDate).getTime()), [senateTrades, houseTrades]);
+
+  const takeSnapshot = useCallback(() => {
+    return {
+      news: new Set(mergedNews.map(newsId)),
+      insider: new Set((insiderTrades || []).map(insiderId)),
+      congress: new Set(congressTrades.map(congressId)),
+    };
+  }, [mergedNews, insiderTrades, congressTrades]);
+
   const handleRefresh = async () => {
     setRefreshing(true);
+    setRefreshResult(null);
+
+    // Snapshot current data before refresh
+    const before = takeSnapshot();
+    prevSnapshotRef.current = before;
+
     forceBypassFmpCache(15_000);
     const minDelay = new Promise((r) => setTimeout(r, 1000));
+
     await Promise.all([
-      queryClient.refetchQueries({ queryKey: ["fmp-stock-news"] }),
-      queryClient.refetchQueries({ queryKey: ["fmp-general-news"] }),
-      queryClient.refetchQueries({ queryKey: ["fmp-insider-trades"] }),
-      queryClient.refetchQueries({ queryKey: ["fmp-senate-trades"] }),
-      queryClient.refetchQueries({ queryKey: ["fmp-house-trades"] }),
+      queryClient.refetchQueries({ queryKey: ["fmp-stock-news"], exact: false }),
+      queryClient.refetchQueries({ queryKey: ["fmp-general-news"], exact: false }),
+      queryClient.refetchQueries({ queryKey: ["fmp-insider-trades"], exact: false }),
+      queryClient.refetchQueries({ queryKey: ["fmp-senate-trades"], exact: false }),
+      queryClient.refetchQueries({ queryKey: ["fmp-house-trades"], exact: false }),
       minDelay,
     ]);
+
+    setLastRefreshed(new Date());
     setRefreshing(false);
+
+    // Diff will happen on next render via effect-like approach — 
+    // we use a short timeout so the new data has propagated to state
+    setTimeout(() => {
+      // Re-read from current query cache
+      const stockNewsNow = queryClient.getQueryData<FMPStockNews[]>(["fmp-stock-news", undefined, 25]) || [];
+      const generalNewsNow = queryClient.getQueryData<FMPStockNews[]>(["fmp-general-news", 25]) || [];
+      const insiderNow = queryClient.getQueryData<FMPInsiderTrade[]>(["fmp-insider-trades", 15]) || [];
+      const senateNow = queryClient.getQueryData<FMPCongressionalTrade[]>(["fmp-senate-trades", 15]) || [];
+      const houseNow = queryClient.getQueryData<FMPCongressionalTrade[]>(["fmp-house-trades", 15]) || [];
+
+      // Dedup news same way
+      const allNewsNow = [...stockNewsNow, ...generalNewsNow];
+      const seenNow = new Set<string>();
+      const dedupedNow = allNewsNow.filter((a) => {
+        const key = a.title?.toLowerCase().trim();
+        if (!key || seenNow.has(key)) return false;
+        seenNow.add(key);
+        return true;
+      });
+
+      const congressNow = [
+        ...senateNow.map((t) => ({ ...t, chamber: "Senate" as const })),
+        ...houseNow.map((t) => ({ ...t, chamber: "House" as const })),
+      ];
+
+      let newCount = 0;
+      const nowNewsIds = new Set(dedupedNow.map(newsId));
+      const nowInsiderIds = new Set(insiderNow.map(insiderId));
+      const nowCongressIds = new Set(congressNow.map(congressId));
+
+      nowNewsIds.forEach((id) => { if (!before.news.has(id)) newCount++; });
+      nowInsiderIds.forEach((id) => { if (!before.insider.has(id)) newCount++; });
+      nowCongressIds.forEach((id) => { if (!before.congress.has(id)) newCount++; });
+
+      setRefreshResult(newCount > 0 ? `${newCount} new item${newCount > 1 ? "s" : ""}` : "No new items");
+
+      // Auto-clear message after 8 seconds
+      setTimeout(() => setRefreshResult(null), 8000);
+    }, 200);
   };
 
   const allNewsLoading = newsLoading && generalLoading;
-
-  const congressTrades = [
-    ...(senateTrades?.map((t) => ({ ...t, chamber: "Senate" as const })) || []),
-    ...(houseTrades?.map((t) => ({ ...t, chamber: "House" as const })) || []),
-  ].sort((a, b) => new Date(b.transactionDate).getTime() - new Date(a.transactionDate).getTime());
 
   return (
     <div className="-m-6">
@@ -114,7 +197,20 @@ export default function News() {
         {/* News Feed — 70% */}
         <div className="w-[70%] border-r border-border p-6 space-y-4 overflow-y-auto">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-foreground tracking-tight">Latest News</h2>
+            <div className="flex items-center gap-3">
+              <h2 className="text-lg font-semibold text-foreground tracking-tight">Latest News</h2>
+              {lastRefreshed && (
+                <span className="text-[10px] text-muted-foreground font-mono">
+                  Updated {formatTime(lastRefreshed)}
+                </span>
+              )}
+              {refreshResult && (
+                <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                  <CheckCircle2 className="h-3 w-3 text-green-400" />
+                  {refreshResult}
+                </span>
+              )}
+            </div>
             <Button variant="ghost" size="sm" onClick={handleRefresh} disabled={refreshing} className="text-xs gap-1.5">
               <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} /> Refresh
             </Button>
