@@ -360,7 +360,8 @@ export async function fetchBatchSparklines(tickers: string[]): Promise<Record<st
 
   const results: Record<string, number[]> = {};
 
-  const batchSize = 5;
+  // Increase batch size to reduce sequential rounds
+  const batchSize = 15;
   for (let i = 0; i < tickers.length; i += batchSize) {
     const batch = tickers.slice(i, i + batchSize);
     const promises = batch.map(async (ticker) => {
