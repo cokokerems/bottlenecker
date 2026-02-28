@@ -246,6 +246,7 @@ export interface FMPSearchResult {
 
 // ── Local browser cache ──
 const localCache = new Map<string, { data: unknown; ts: number }>();
+const inFlightRequests = new Map<string, Promise<unknown>>();
 const LOCAL_CACHE_TTL = 3 * 60 * 1000;
 
 function getCachedLocal<T>(key: string): T | null {
@@ -296,20 +297,32 @@ async function fmpGeneric<T>(
     if (cached) return cached;
   }
 
-  const { data, error } = await supabase.functions.invoke("fmp-proxy", {
-    body: { path, params, v3, noCache: shouldBypassCache },
-  });
+  const pending = inFlightRequests.get(cacheKey);
+  if (pending) return pending as Promise<T>;
 
-  if (error) {
-    console.error("FMP generic fetch error:", error);
-    throw error;
+  const request = (async () => {
+    const { data, error } = await supabase.functions.invoke("fmp-proxy", {
+      body: { path, params, v3, noCache: shouldBypassCache },
+    });
+
+    if (error) {
+      console.error("FMP generic fetch error:", error);
+      throw error;
+    }
+
+    if (!skipLocalCache) {
+      setCacheLocal(cacheKey, data);
+    }
+
+    return data as T;
+  })();
+
+  inFlightRequests.set(cacheKey, request as Promise<unknown>);
+  try {
+    return await request;
+  } finally {
+    inFlightRequests.delete(cacheKey);
   }
-
-  if (!skipLocalCache) {
-    setCacheLocal(cacheKey, data);
-  }
-
-  return data as T;
 }
 
 // ── Batch ticker/endpoint fetch (original) ──
@@ -321,17 +334,29 @@ export async function fetchFMPData(
   const cached = getCachedLocal<Record<string, FMPCompanyData>>(cacheKey);
   if (cached) return cached;
 
-  const { data, error } = await supabase.functions.invoke("fmp-proxy", {
-    body: { tickers, endpoints },
-  });
+  const pending = inFlightRequests.get(cacheKey);
+  if (pending) return pending as Promise<Record<string, FMPCompanyData>>;
 
-  if (error) {
-    console.error("FMP fetch error:", error);
-    throw error;
+  const request = (async () => {
+    const { data, error } = await supabase.functions.invoke("fmp-proxy", {
+      body: { tickers, endpoints },
+    });
+
+    if (error) {
+      console.error("FMP fetch error:", error);
+      throw error;
+    }
+
+    setCacheLocal(cacheKey, data);
+    return data as Record<string, FMPCompanyData>;
+  })();
+
+  inFlightRequests.set(cacheKey, request as Promise<unknown>);
+  try {
+    return await request;
+  } finally {
+    inFlightRequests.delete(cacheKey);
   }
-
-  setCacheLocal(cacheKey, data);
-  return data as Record<string, FMPCompanyData>;
 }
 
 export async function fetchQuotes(tickers: string[]): Promise<Record<string, FMPQuote>> {

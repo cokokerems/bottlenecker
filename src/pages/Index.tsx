@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 import { useFMPQuotes, useFMPSparklines } from "@/hooks/useFMPData";
 import { useFocusList } from "@/hooks/useFocusList";
 import { useBatchEarningsDates } from "@/hooks/useEarningsDates";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const INDEX_TICKERS = [
@@ -21,10 +21,42 @@ export default function DashboardHome() {
     () => [...INDEX_TICKERS.map((i) => i.ticker), ...companyTickers],
     [companyTickers]
   );
+
+  const { focusTickers, toggleFocus } = useFocusList();
+  const [loadSparklines, setLoadSparklines] = useState(false);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setLoadSparklines(true), 1200);
+    return () => window.clearTimeout(timeout);
+  }, []);
+
+  const focusedTickerList = useMemo(
+    () => companies.filter((c) => focusTickers.includes(c.ticker)).map((c) => c.ticker),
+    [focusTickers]
+  );
+
+  const [sparklineLimit, setSparklineLimit] = useState(12);
+
+  useEffect(() => {
+    if (!loadSparklines || sparklineLimit >= companyTickers.length) return;
+    const interval = window.setInterval(() => {
+      setSparklineLimit((prev) => Math.min(prev + 12, companyTickers.length));
+    }, 1200);
+    return () => window.clearInterval(interval);
+  }, [loadSparklines, sparklineLimit, companyTickers.length]);
+
+  const sparklineTickers = useMemo(() => {
+    const otherTickers = companies
+      .filter((c) => !focusTickers.includes(c.ticker))
+      .slice(0, sparklineLimit)
+      .map((c) => c.ticker);
+
+    return Array.from(new Set([...focusedTickerList, ...otherTickers]));
+  }, [focusTickers, focusedTickerList, sparklineLimit]);
+
   const { data: liveQuotes, isLoading, isError } = useFMPQuotes(allTickers);
-  const { data: sparklineData } = useFMPSparklines(companyTickers);
-  const { focusTickers, toggleFocus, isFocused } = useFocusList();
-  const { nextEarningsMap } = useBatchEarningsDates(companyTickers);
+  const { data: sparklineData } = useFMPSparklines(loadSparklines ? sparklineTickers : []);
+  const { nextEarningsMap } = useBatchEarningsDates(focusedTickerList);
 
   // Split companies into focused + rest
   const focusedCompanies = useMemo(
