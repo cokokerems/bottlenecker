@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.ai-research]
 verify_jwt = false
+
+[functions.bottleneck-scan]
+verify_jwt = false
