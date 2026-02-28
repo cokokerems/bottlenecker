@@ -17,6 +17,7 @@ import {
   useFMPAnalystRecommendations, useFMPPriceTargetConsensus, useFMPDcf, useFMPAnalystEstimates,
   useFMPInstitutionalHolders, useFMPMutualFundHolders, useFMPInsiderTradingStats,
 } from "@/hooks/useFMPData";
+import { useEarningsDates } from "@/hooks/useEarningsDates";
 import { useMemo } from "react";
 
 function toDateKey(d: Date) {
@@ -76,6 +77,7 @@ export default function CompanyDetail() {
   const { data: instHolders } = useFMPInstitutionalHolders(ticker);
   const { data: mfHolders } = useFMPMutualFundHolders(ticker);
   const { data: insiderStats } = useFMPInsiderTradingStats(ticker);
+  const { data: earningsDates } = useEarningsDates(ticker);
 
   // Collapsible states
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
@@ -134,6 +136,16 @@ export default function CompanyDetail() {
             ))}
           </div>
           <p className="text-sm text-muted-foreground">{company.description}</p>
+          {earningsDates && (
+            <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
+              {earningsDates.last && (
+                <span>Last Earnings: <span className="font-mono font-medium text-foreground">{earningsDates.last.date}</span></span>
+              )}
+              {earningsDates.next && (
+                <span>Next Earnings: <span className="font-mono font-medium text-primary">{earningsDates.next.date}</span></span>
+              )}
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           {isLoading ? <span className="animate-pulse">Loading…</span> : isError ? <><WifiOff className="h-3 w-3 text-destructive" /> Mock</> : <><Wifi className="h-3 w-3 text-success" /> Live</>}
