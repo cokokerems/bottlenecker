@@ -95,7 +95,7 @@ export default function CompanyDetail() {
       marketCap: q?.marketCap ? q.marketCap / 1e9 : company.marketCap,
       revenue: inc?.revenue ? inc.revenue / 1e9 : company.revenue,
       earnings: inc?.netIncome ? inc.netIncome / 1e9 : company.earnings,
-      grossMargin: inc?.grossProfitRatio ? inc.grossProfitRatio * 100 : company.grossMargin,
+      grossMargin: inc?.grossProfit && inc?.revenue ? (inc.grossProfit / inc.revenue) * 100 : (inc?.grossProfitRatio ? inc.grossProfitRatio * 100 : company.grossMargin),
       totalDebt: bs?.totalDebt ? bs.totalDebt / 1e9 : company.totalDebt,
       cashAndEquivalents: bs?.cashAndCashEquivalents ? bs.cashAndCashEquivalents / 1e9 : company.cashAndEquivalents,
       minorityInterest: bs?.minorityInterest ? bs.minorityInterest / 1e9 : company.minorityInterest,
