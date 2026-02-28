@@ -8,7 +8,7 @@ const corsHeaders = {
 
 const FMP_BASE_STABLE = "https://financialmodelingprep.com/stable";
 const FMP_BASE_V3 = "https://financialmodelingprep.com/api/v3";
-const CONCURRENCY = 3;
+const CONCURRENCY = 6;
 
 // ── Per-endpoint cache TTL ──
 const SHORT_TTL_MS = 45 * 1000; // 45s for live feeds
